@@ -1,0 +1,72 @@
+name: Feature request
+description: Propose a focused feature or improvement
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        REE is built in small, reviewable phases. Describe the problem before the solution.
+        Do not include secrets, personal data, or proprietary artifacts.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the smallest useful change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will we know this is complete and correct?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Roadmap phase
+      options:
+        - Phase 0a - foundation
+        - Phase 0b - MCP and diagnostics
+        - Phase 0c - first release
+        - Phase 1 - evidence core
+        - Phase 2 - ELF
+        - Phase 3 - PE
+        - Phase 4 - Mach-O
+        - Phase 5 - archives and application packages
+        - Phase 6 - analysis surface
+        - Phase 7 - external providers
+        - Phase 8 - JavaScript and web
+        - Phase 9 - runtime
+        - Unsure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I did not include secrets or proprietary data.
+          required: true
+        - label: This request respects the read-only, evidence-first scope.
+          required: true
