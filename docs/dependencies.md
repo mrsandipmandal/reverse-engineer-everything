@@ -18,13 +18,24 @@ Third-party analysis engines are not bundled. They are detected and invoked only
 
 The foundation has no Go module dependencies. It uses only the standard library.
 
+## Phase 0b
+
+| Module | Version | License | Purpose |
+|---|---|---|---|
+| `github.com/modelcontextprotocol/go-sdk` | `v1.8.0` | MIT and Apache-2.0 | Official MCP server, client, and transport implementation |
+
+The SDK requires Go 1.25 and supports MCP protocol versions `2026-07-28`, `2025-11-25`, `2025-06-18`, `2025-03-26`, and `2024-11-05`; the client and server negotiate a mutually supported version. REE uses a Go 1.26.10 module baseline because the standard-library vulnerabilities reported by `govulncheck` on Go 1.26.8 are fixed in Go 1.26.10.
+
+The SDK is transitioning from MIT to Apache-2.0. Both licenses are permissive and compatible with this Apache-2.0 project. All modules linked into REE binaries use permissive licenses (MIT, Apache-2.0, or BSD-3-Clause); build-only modules are not redistributed. Attribution and license texts are recorded in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). SDK `v1.3.1` was rejected because it contains called vulnerabilities and requires an older, vulnerable toolchain.
+
+See [ADR 0002](adr/0002-mcp-sdk.md).
+
 ## Planned, subject to verification
 
 These are candidates, not commitments. Each must pass the policy above before adoption.
 
 | Area | Candidate | Phase |
 |---|---|---|
-| MCP server | `modelcontextprotocol/go-sdk` | 0b |
 | JSON Schema | `santhosh-tekuri/jsonschema/v6` | 1 |
 | Canonical JSON | `cyberphone/json-canonicalization` | 1 |
 | Browser automation | `chromedp` | 8 |

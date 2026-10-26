@@ -27,18 +27,41 @@ Acceptance criteria:
 
 Scope:
 
-- MCP server over stdio.
-- Versioned REE-native tool surface.
+- MCP server over stdio using the official Go SDK.
+- Versioned REE-native tool surface with only `ree_version` and `ree_doctor`.
 - `ree doctor` for tool and environment detection.
 - Release workflow, GoReleaser configuration, checksums, SBOM, and keyless signing.
 - Security policy automation and dependency updates.
 
 Acceptance criteria:
 
-- MCP initialize and tool listing are tested.
-- `ree doctor` reports missing tools without failing hard.
-- Release workflow is gated by tests and produces verifiable artifacts.
-- No analysis tool is exposed before its phase.
+- The module uses Go 1.26.10 and MCP SDK `v1.8.0`; CI tests Go 1.26.10 and 1.27.x.
+- `ree mcp` serves MCP over stdin/stdout with no arguments and no analysis tools.
+- MCP discovery or initialization reports server name `ree`, the build version, and instructions containing surface version `0.1`.
+- MCP tool listing returns exactly `ree_version` and `ree_doctor`; both are read-only, closed-world, and non-destructive.
+- `ree_version` returns the same identity as `ree version --json`.
+- `ree_doctor` returns structured environment diagnostics and reports missing tools without failing the process.
+- Required tools are `go` and `git`; optional tools are `make`, `golangci-lint`, `govulncheck`, `actionlint`, `goreleaser`, `cosign`, and `syft`.
+- Tool probes use fixed argv, a two-second timeout, and bounded output; they never use a shell.
+- Missing or broken optional tools do not set `ok` to false; missing or broken required tools do.
+- `ree doctor` and `ree doctor --json` exit 0 when tools are missing, and use exit code 2 only for invalid usage.
+- MCP over stdio emits protocol messages on stdout only; diagnostics and failures use stderr.
+- Tests cover modern and legacy protocol initialization, exact tool listing, tool annotations, version output, injected doctor diagnostics, CLI dispatch, and help/usage behavior.
+- `go test -race ./...`, `go vet ./...`, `gofmt`, `golangci-lint`, `govulncheck`, and `actionlint` pass; `govulncheck` reports no called or required-module vulnerabilities.
+- The release workflow runs only for `v*` tags, verifies the module and tests first, and uses least-privilege permissions with `contents: write` and `id-token: write` only for the release job.
+- Release actions are pinned to full commit SHAs.
+- GoReleaser builds linux, darwin, and windows on amd64 and arm64, creates tar.gz archives except zip for Windows, and publishes checksums.
+- Release archives include `LICENSE`, `NOTICE`, `README.md`, and `THIRD_PARTY_NOTICES.md`.
+- Release artifacts include SBOMs and a keyless cosign signature bundle for the checksum file.
+- `goreleaser check` and a snapshot build are validated locally.
+- Documentation records the MCP SDK version, license, protocol support, and dependency decision in an ADR.
+- No artifact analysis, external engine execution, runtime observation, or compatibility MCP profile is present.
+
+Out of scope for this phase:
+
+- the `v0.0.1` release and post-release verification;
+- external engine detection beyond doctor reporting;
+- any tool that reads or analyzes an artifact.
 
 ## Phase 0c: first release
 

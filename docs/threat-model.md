@@ -70,6 +70,32 @@ Mitigations:
 - fixed tool paths or explicit allowlists;
 - strict output caps.
 
+### MCP protocol boundary
+
+Threat: a client sends malformed arguments or a tool contaminates the stdio protocol stream with logs.
+
+Mitigations:
+
+- the Phase 0b tools take no arguments, so artifact data cannot reach a handler;
+- the SDK validates tool inputs and outputs against generated JSON Schemas;
+- stdout is reserved for MCP protocol messages;
+- the SDK logger defaults to discard, and CLI errors go to stderr;
+- tool handlers return only version or diagnostic data.
+
+### Doctor subprocesses
+
+Threat: `ree doctor` executes a malicious or unexpected executable found on `PATH`.
+
+Mitigations:
+
+- only fixed executable names and fixed `--version`-style argv are used;
+- no shell interpolation;
+- two-second timeout and bounded combined output;
+- missing tools are reported, not installed;
+- the report never includes environment-variable contents or secrets.
+
+Residual risk: a local attacker who controls the user's `PATH` can substitute a tool. The doctor is a diagnostic command, not a sandbox.
+
 ### Untrusted subprocesses
 
 Threat: a malicious engine reads files, uses the network, or runs indefinitely.

@@ -24,7 +24,7 @@ Apache-2.0 with a `NOTICE` file. Contributions require a Developer Certificate o
 
 ### Language and baseline
 
-Go, with a `go 1.24` module baseline. CI tests Go 1.24, 1.25, and 1.26.
+Go, with a `go 1.26.10` module baseline. CI tests Go 1.26.10 and 1.27.x. The baseline was raised from Go 1.24 in Phase 0b after security advisories required a newer standard library and MCP SDK; see ADR 0002.
 
 ### Scope
 
