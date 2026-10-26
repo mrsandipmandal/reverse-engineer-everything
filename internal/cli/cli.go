@@ -31,6 +31,10 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "version":
 		return runVersion(ctx, args[1:], stdout, stderr)
+	case "doctor":
+		return runDoctor(ctx, args[1:], stdout, stderr)
+	case "mcp":
+		return runMCP(ctx, args[1:], stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return ExitOK
@@ -47,7 +51,9 @@ Usage: ree <command> [options]
 
 Commands:
   version   Print version information
+  doctor    Check local tools and environment
+  mcp       Run the MCP server over stdio
   help      Show this help
 
-Run "ree version --json" for machine-readable output.`)
+Run "ree version --json" or "ree doctor --json" for machine-readable output.`)
 }

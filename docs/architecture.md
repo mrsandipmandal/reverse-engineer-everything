@@ -50,7 +50,11 @@ A store retains evidence and supports deterministic export and import. The first
 
 ### Runner
 
-A runner executes an allowlisted external tool under explicit authorization, isolation, and resource limits. It is not part of the Phase 0a foundation.
+A runner executes an allowlisted external tool under explicit authorization, isolation, and resource limits. It is not part of the Phase 0b surface.
+
+### MCP surface
+
+The MCP server is a versioned projection over REE-native operations, not a compatibility layer for another tool. In Phase 0b it exposes build identity and local diagnostics only. Tool names, input schemas, output schemas, and annotations are part of the public contract. Stdout carries protocol messages; diagnostics go to stderr.
 
 ## Evidence model
 
@@ -86,11 +90,21 @@ The MCP surface is REE-native and versioned. A compatibility profile for other t
 
 ## Phase 0a
 
-Phase 0a contains only the CLI foundation:
+Phase 0a contains the CLI foundation:
 
 - `ree version` and `ree help`;
 - deterministic build metadata;
 - CI, CodeQL, dependency review, and workflow linting;
 - open-source repository files.
 
-No artifact parsing, engine execution, or MCP server is present yet.
+## Phase 0b
+
+Phase 0b adds the first public protocol surface and release automation:
+
+- `ree mcp`, a stdio MCP server with surface version `0.1`;
+- `ree_version` and `ree_doctor` as the only MCP tools;
+- `ree doctor` with text and JSON reports for local tooling;
+- GoReleaser archives, checksums, SBOMs, and keyless signing for tagged releases;
+- Dependabot and SHA-pinned release actions.
+
+The doctor reads tool metadata through fixed argv probes with timeouts and output caps. It does not accept artifact paths, parse artifacts, or execute analysis engines. No artifact parsing or analysis tool is exposed in this phase.

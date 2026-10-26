@@ -16,12 +16,13 @@ Thank you for helping build Reverse Engineer Everything.
 
 Requirements:
 
-- Go 1.24 or newer
+- Go 1.26.10 or newer
 - Git
 - Make (recommended; not required)
 - `golangci-lint`, `govulncheck`, and `actionlint` for the full local check
+- `goreleaser`, `cosign`, and `syft` for release configuration validation (install these separately)
 
-Install the pinned local tools into `bin/`:
+Run `ree doctor` to see which local tools are available. Install the pinned local check tools into `bin/`:
 
 ```bash
 make tools

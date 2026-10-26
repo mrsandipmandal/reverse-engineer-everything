@@ -6,7 +6,7 @@
 
 **Evidence-first reverse engineering for binaries, apps, and artifacts.**
 
-> Status: pre-alpha. The current foundation exposes `ree version` only. Analysis features are being built in reviewable phases.
+> Status: pre-alpha. The current foundation exposes build identity, local diagnostics, and an MCP diagnostic surface. Analysis features are being built in reviewable phases.
 
 ## Why
 
@@ -20,7 +20,7 @@ Reverse engineering tools often produce confident answers without showing what w
 
 ## Install
 
-Requires Go 1.24 or newer.
+Requires Go 1.26.10 or newer.
 
 ```bash
 go install github.com/mrsandipmandal/reverse-engineer-everything/cmd/ree@latest
@@ -38,7 +38,34 @@ go build -o bin/ree ./cmd/ree
 ```bash
 ree version
 ree version --json
+ree doctor
+ree doctor --json
+ree mcp
 ree help
+```
+
+`ree doctor` reports whether the local tools used for development and releases are available. Missing optional tools do not fail the command; the JSON form is intended for automation.
+
+## MCP
+
+`ree mcp` serves the REE-native MCP surface over stdin/stdout. In this phase it exposes only:
+
+- `ree_version`: the same build identity as `ree version --json`;
+- `ree_doctor`: local tool and environment diagnostics.
+
+It supports MCP protocol versions `2024-11-05` through `2026-07-28`, including stateless discovery. The server exposes no artifact analysis tools and does not read or execute artifacts. Stdout carries MCP protocol messages only; logs and errors go to stderr.
+
+Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "ree": {
+      "command": "/absolute/path/to/ree",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 ## Scope
@@ -64,4 +91,4 @@ Report vulnerabilities privately through GitHub Security Advisories. See [SECURI
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache-2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
