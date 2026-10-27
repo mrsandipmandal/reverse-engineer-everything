@@ -81,6 +81,26 @@ Mitigations:
 
 Residual risk: callers that ignore `Truncated`, `Limitations`, or `ErrUnavailable` can still overstate what an artifact contains. Evidence emitters must map these signals into coverage and limitations rather than into empty values.
 
+### ELF symbols and relocations
+
+Threat: a crafted symbol count, string table, extended-index table, relocation count, or packed `r_info` field causes excessive allocation, integer overflow, a panic, a misleading symbol identity, or a fabricated relocation addend.
+
+Mitigations:
+
+- bound the number of symbol tables, symbols, relocation sections, and relocations before allocating or appending;
+- bound one symbol string table with the content limit and all symbol string reads with a per-call byte budget;
+- reject invalid UTF-8, unterminated names, out-of-range name offsets, and names above the name limit instead of substituting text;
+- keep `TableIndex` and `Index` on every symbol so a per-table index space cannot be mistaken for a global one;
+- include the null symbol so indexes match the raw table;
+- resolve `SHN_XINDEX` only through a linked `SHT_SYMTAB_SHNDX` table and leave unresolved indexes at `0xffff` with a limitation;
+- decode `r_info` with the artifact word size and byte order, and bounds-check every complete entry before slicing;
+- record whether an addend was explicit; never infer a `SHT_REL` addend from relocated bytes;
+- aggregate name and index failures per table and cap the limitation list so a malformed table cannot flood output;
+- return `ErrRead` with the entries collected so far when the reader fails;
+- treat an incomplete section header table as a coverage limitation rather than as proof that no symbols or relocations exist.
+
+Residual risk: symbol and relocation indexes are per-table and only meaningful with the original artifact. A consumer that resolves a `SymIndex` against the wrong table, or that reads a relocation as an applied value, can still produce a wrong claim. Symbol versioning and relocation application remain out of scope.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.

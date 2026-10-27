@@ -4,9 +4,9 @@
 // Parse validates the ELF identifier and file header, resolves extended
 // numbering, and loads the raw section and program header tables behind
 // explicit size, count, and allocation limits. Section names, section and
-// segment contents, notes, GNU build-id, and .comment entries are read on
-// demand under separate limits. Symbols, relocations, and decompilation are
-// left to later layers.
+// segment contents, notes, GNU build-id, .comment entries, symbols, and
+// relocations are read on demand under separate limits. Decompilation and
+// disassembly are left to later layers.
 //
 // Input is untrusted. Structural defects fail with a sentinel error. A table
 // that is cut short by the artifact end or by a configured limit yields the
@@ -51,6 +51,17 @@ const (
 	MaxBuildIDBytes = 4 << 10
 	// MaxCommentStrings bounds the entries returned from .comment sections.
 	MaxCommentStrings = 4_096
+	// MaxSymbolTables bounds the symbol table sections scanned.
+	MaxSymbolTables = 64
+	// MaxSymbols bounds the symbols returned across all symbol tables.
+	MaxSymbols = 262_144
+	// MaxSymbolStringBytes bounds the string table bytes loaded while
+	// resolving symbol names in one call.
+	MaxSymbolStringBytes int64 = 32 << 20
+	// MaxRelocationSections bounds the relocation sections scanned.
+	MaxRelocationSections = 4_096
+	// MaxRelocations bounds the relocations returned across all sections.
+	MaxRelocations = 262_144
 )
 
 // Sentinel errors. Errors returned by this package wrap exactly one of these
@@ -230,30 +241,40 @@ type Limits struct {
 	SectionHeaders int
 	ProgramHeaders int
 
-	SectionDataBytes int64
-	SegmentDataBytes int64
-	StringTableBytes int64
-	NameBytes        int
-	Notes            int
-	NoteDataBytes    int64
-	BuildIDBytes     int
-	CommentStrings   int
+	SectionDataBytes   int64
+	SegmentDataBytes   int64
+	StringTableBytes   int64
+	NameBytes          int
+	Notes              int
+	NoteDataBytes      int64
+	BuildIDBytes       int
+	CommentStrings     int
+	SymbolTables       int
+	Symbols            int
+	SymbolStringBytes  int64
+	RelocationSections int
+	Relocations        int
 }
 
 // DefaultLimits returns the package limits.
 func DefaultLimits() Limits {
 	return Limits{
-		ArtifactBytes:    MaxArtifactBytes,
-		SectionHeaders:   MaxSectionHeaders,
-		ProgramHeaders:   MaxProgramHeaders,
-		SectionDataBytes: MaxSectionDataBytes,
-		SegmentDataBytes: MaxSegmentDataBytes,
-		StringTableBytes: MaxStringTableBytes,
-		NameBytes:        MaxNameBytes,
-		Notes:            MaxNotes,
-		NoteDataBytes:    MaxNoteDataBytes,
-		BuildIDBytes:     MaxBuildIDBytes,
-		CommentStrings:   MaxCommentStrings,
+		ArtifactBytes:      MaxArtifactBytes,
+		SectionHeaders:     MaxSectionHeaders,
+		ProgramHeaders:     MaxProgramHeaders,
+		SectionDataBytes:   MaxSectionDataBytes,
+		SegmentDataBytes:   MaxSegmentDataBytes,
+		StringTableBytes:   MaxStringTableBytes,
+		NameBytes:          MaxNameBytes,
+		Notes:              MaxNotes,
+		NoteDataBytes:      MaxNoteDataBytes,
+		BuildIDBytes:       MaxBuildIDBytes,
+		CommentStrings:     MaxCommentStrings,
+		SymbolTables:       MaxSymbolTables,
+		Symbols:            MaxSymbols,
+		SymbolStringBytes:  MaxSymbolStringBytes,
+		RelocationSections: MaxRelocationSections,
+		Relocations:        MaxRelocations,
 	}
 }
 
@@ -366,6 +387,21 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.CommentStrings <= 0 || l.CommentStrings > MaxCommentStrings {
 		l.CommentStrings = MaxCommentStrings
+	}
+	if l.SymbolTables <= 0 || l.SymbolTables > MaxSymbolTables {
+		l.SymbolTables = MaxSymbolTables
+	}
+	if l.Symbols <= 0 || l.Symbols > MaxSymbols {
+		l.Symbols = MaxSymbols
+	}
+	if l.SymbolStringBytes <= 0 || l.SymbolStringBytes > MaxSymbolStringBytes {
+		l.SymbolStringBytes = MaxSymbolStringBytes
+	}
+	if l.RelocationSections <= 0 || l.RelocationSections > MaxRelocationSections {
+		l.RelocationSections = MaxRelocationSections
+	}
+	if l.Relocations <= 0 || l.Relocations > MaxRelocations {
+		l.Relocations = MaxRelocations
 	}
 	return l
 }

@@ -3,6 +3,7 @@ package elf_test
 import (
 	"bytes"
 	"debug/elf"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -22,6 +23,10 @@ func TestDifferentialAgainstDebugELF(t *testing.T) {
 		{name: "fixture/ELF64/little", data: buildFixture(reeelf.Class64, reeelf.DataLittle).data},
 		{name: "fixture/ELF64/big", data: buildFixture(reeelf.Class64, reeelf.DataBig).data},
 		{name: "fixture/metadata", data: buildMetadataFixture(reeelf.Class64, reeelf.DataLittle, metadataNotes(reeelf.DataLittle)).data},
+		{name: "fixture/symbols/ELF32/little", data: buildSymbolFixture(reeelf.Class32, reeelf.DataLittle).data},
+		{name: "fixture/symbols/ELF32/big", data: buildSymbolFixture(reeelf.Class32, reeelf.DataBig).data},
+		{name: "fixture/symbols/ELF64/little", data: buildSymbolFixture(reeelf.Class64, reeelf.DataLittle).data},
+		{name: "fixture/symbols/ELF64/big", data: buildSymbolFixture(reeelf.Class64, reeelf.DataBig).data},
 	}
 	if path, err := os.Executable(); err == nil {
 		if data, err := os.ReadFile(path); err == nil && len(data) >= 4 &&
@@ -50,6 +55,7 @@ func TestDifferentialAgainstDebugELF(t *testing.T) {
 			compareHeader(t, got, want.FileHeader)
 			compareSections(t, got.SectionHeaders, want.Sections)
 			comparePrograms(t, got.ProgramHeaders, want.Progs)
+			compareSymbols(t, got, want)
 		})
 	}
 }
@@ -153,6 +159,89 @@ func comparePrograms(t *testing.T, got []reeelf.ProgramHeader, want []*elf.Prog)
 		if g.FileSize != w.Filesz || g.MemorySize != w.Memsz || g.Align != w.Align {
 			t.Fatalf("%s sizes/alignment = %#x/%#x/%#x, want %#x/%#x/%#x",
 				label, g.FileSize, g.MemorySize, g.Align, w.Filesz, w.Memsz, w.Align)
+		}
+	}
+}
+
+// compareSymbols checks REE symbol decoding against debug/elf for every symbol
+// table the standard library exposes. debug/elf omits the null symbol at index
+// 0 and leaves SHN_XINDEX unresolved, so the comparison skips the null entry
+// and the section index of resolved extended entries. debug/elf has no
+// exported relocation reader, so relocations have constructed expectations
+// only.
+func compareSymbols(t *testing.T, file *reeelf.File, want *elf.File) {
+	t.Helper()
+
+	set, err := file.Symbols()
+	if err != nil {
+		t.Fatalf("Symbols() error = %v", err)
+	}
+	if set.Truncated {
+		t.Fatalf("Symbols() reported truncation: %v", set.Limitations)
+	}
+
+	tables := 0
+	for _, sh := range file.SectionHeaders {
+		var oracle []elf.Symbol
+		switch sh.Type {
+		case uint32(elf.SHT_SYMTAB):
+			oracle, err = want.Symbols()
+		case uint32(elf.SHT_DYNSYM):
+			oracle, err = want.DynamicSymbols()
+		default:
+			continue
+		}
+		if errors.Is(err, elf.ErrNoSymbols) {
+			t.Fatalf("section %d has no debug/elf symbols", sh.Index)
+		}
+		if err != nil {
+			t.Fatalf("debug/elf symbols for section %d: %v", sh.Index, err)
+		}
+		tables++
+
+		var own []reeelf.Symbol
+		for _, sym := range set.Symbols {
+			if sym.TableIndex == sh.Index {
+				own = append(own, sym)
+			}
+		}
+		if len(own) != len(oracle)+1 {
+			t.Fatalf("section %d symbol count = %d, want %d plus the null symbol",
+				sh.Index, len(own), len(oracle))
+		}
+		if own[0] != (reeelf.Symbol{TableIndex: sh.Index}) {
+			t.Fatalf("section %d null symbol = %+v", sh.Index, own[0])
+		}
+
+		for i, expected := range oracle {
+			got := own[i+1]
+			label := fmt.Sprintf("section %d symbol %d", sh.Index, i+1)
+			if got.Index != i+1 {
+				t.Fatalf("%s index = %d", label, got.Index)
+			}
+			if got.Name != expected.Name {
+				t.Fatalf("%s name = %q, want %q", label, got.Name, expected.Name)
+			}
+			if got.Info != expected.Info || got.Other != expected.Other {
+				t.Fatalf("%s info/other = %#x/%#x, want %#x/%#x",
+					label, got.Info, got.Other, expected.Info, expected.Other)
+			}
+			if got.Value != expected.Value || got.Size != expected.Size {
+				t.Fatalf("%s value/size = %#x/%#x, want %#x/%#x",
+					label, got.Value, got.Size, expected.Value, expected.Size)
+			}
+			if !got.ExtendedSectionIndex && got.SectionIndex != uint32(expected.Section) {
+				t.Fatalf("%s section = %d, want %d",
+					label, got.SectionIndex, uint32(expected.Section))
+			}
+		}
+	}
+
+	if tables == 0 {
+		// A stripped binary legitimately has no symbol table. Only fail when
+		// debug/elf can see one that REE missed.
+		if want.SectionByType(elf.SHT_SYMTAB) != nil || want.SectionByType(elf.SHT_DYNSYM) != nil {
+			t.Fatalf("REE found no symbol table but debug/elf did")
 		}
 	}
 }

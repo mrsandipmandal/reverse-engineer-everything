@@ -95,11 +95,11 @@ func buildMetadataFixtureWithComment(class reeelf.Class, data reeelf.Data, noteD
 	f.writeProgram(1, 4, 4, uint64(f.noteOffset), base+uint64(f.noteOffset), base+uint64(f.noteOffset),
 		uint64(len(noteData)), uint64(len(noteData)), 4)
 
-	f.writeSection(1, metadataName(".shstrtab"), 3, 0, 0, uint64(f.nameTableOffset), uint64(len(metadataNames)), 1)
-	f.writeSection(2, metadataName(".note.gnu.build-id"), 7, 2, 0, uint64(f.noteOffset), uint64(len(noteData)), 4)
-	f.writeSection(3, metadataName(".comment"), 1, 0, 0, uint64(f.commentOffset), uint64(len(commentData)), 1)
-	f.writeSection(4, metadataName(".text"), 1, 6, base+0x1000, uint64(f.textOffset), uint64(len(metadataText)), 16)
-	f.writeSection(5, metadataName(".bss"), 8, 3, base+0x2000, 0, 0x1000, 16)
+	f.writeSection(1, metadataName(".shstrtab"), 3, 0, 0, uint64(f.nameTableOffset), uint64(len(metadataNames)), 0, 0, 1, 0)
+	f.writeSection(2, metadataName(".note.gnu.build-id"), 7, 2, 0, uint64(f.noteOffset), uint64(len(noteData)), 0, 0, 4, 0)
+	f.writeSection(3, metadataName(".comment"), 1, 0, 0, uint64(f.commentOffset), uint64(len(commentData)), 0, 0, 1, 0)
+	f.writeSection(4, metadataName(".text"), 1, 6, base+0x1000, uint64(f.textOffset), uint64(len(metadataText)), 0, 0, 16, 0)
+	f.writeSection(5, metadataName(".bss"), 8, 3, base+0x2000, 0, 0x1000, 0, 0, 16, 0)
 
 	copy(buf[f.nameTableOffset:], metadataNames)
 	copy(buf[f.noteOffset:], noteData)
@@ -923,7 +923,7 @@ func TestNotesReaderFailureAndMultipleSections(t *testing.T) {
 		if len(set.Limitations) != wantLimitations {
 			t.Fatalf("limitations = %d, want %d", len(set.Limitations), wantLimitations)
 		}
-		if set.Limitations[len(set.Limitations)-1] != "additional note limitations omitted" {
+		if set.Limitations[len(set.Limitations)-1] != "additional limitations omitted" {
 			t.Fatalf("last limitation = %q", set.Limitations[len(set.Limitations)-1])
 		}
 	})

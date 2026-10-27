@@ -129,6 +129,8 @@ Phase 2 adds a read-only ELF reader in `internal/formats/elf`:
 - explicit `Truncated` and `Limitations` reporting for physical truncation and configured count limits;
 - bounded section names and section and segment contents, read on demand;
 - bounded `SHT_NOTE` scanning, GNU build-id extraction, and NUL-separated `.comment` entries;
+- bounded `SHT_SYMTAB` and `SHT_DYNSYM` decoding, including the null symbol, per-table index provenance, UTF-8 name resolution, and `SHN_XINDEX` resolution through `SHT_SYMTAB_SHNDX`;
+- bounded `SHT_REL` and `SHT_RELA` decoding with raw `r_info`, decoded symbol and type fields, and explicit versus stored addends;
 - explicit `ErrOutOfRange`, `ErrUnavailable`, and `ErrNotFound` so callers can distinguish absent metadata from uncovered or malformed metadata.
 
-Symbols and relocations are added by a later Phase 2 increment on top of this foundation. The reader never executes, decompresses, or maps the artifact. Content is returned as stored bytes. See [ADR 0004](adr/0004-elf-reader.md) for the header and table decisions and [ADR 0005](adr/0005-elf-metadata.md) for the content and metadata limits, error semantics, and note and comment decoding rules.
+The reader never executes, decompresses, or maps the artifact. Content is returned as stored bytes. See [ADR 0004](adr/0004-elf-reader.md) for the header and table decisions, [ADR 0005](adr/0005-elf-metadata.md) for the content and metadata limits, error semantics, and note and comment decoding rules, and [ADR 0006](adr/0006-elf-symbols-relocations.md) for symbol and relocation decoding, names, extended indexes, and addend semantics.
