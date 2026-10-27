@@ -1,15 +1,15 @@
 # Project memory
 
-Last updated: 2026-10-27 · `main@72f1dde` · latest release `v0.0.1`
+Last updated: 2026-10-27 · `main@df69301` · latest release `v0.0.2`
 
 This file is a short, verified snapshot for continuity. The roadmap, changelog, ADRs, and release records remain authoritative for their own content.
 
 ## Current status
 
 - Phase 0a, 0b, and 0c are complete.
-- Phase 1 (evidence core) is not started; the proposal is approved but implementation has not begun.
-- `v0.0.1` is published and verified.
-- `main` is clean and protected; CI, CodeQL, and Actionlint are green on `72f1dde`.
+- Phase 1 (evidence core) is not started; design and scope are approved.
+- `v0.0.1` and `v0.0.2` are published and verified.
+- `main` is clean and protected; CI, CodeQL, and Actionlint are green on `df69301`.
 
 ## Completed milestones
 
@@ -27,26 +27,27 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 
 ## Verification
 
-- Local `make check`: pass at `084576a` (fmt, vet, test, race, golangci-lint, govulncheck, actionlint).
-- Main CI, CodeQL, Actionlint: pass on `72f1dde`.
-- Release workflow: pass (`40457479932`).
-- `scripts/verify-release.sh v0.0.1`: pass (checksums, cosign identity, archive contents, binary identity, MCP surface).
-- Release assets: 14; six archives, six SBOMs, checksums, cosign bundle.
+- Local `gofmt`, `go vet`, `go test`, `go test -race`, `golangci-lint`, and `govulncheck`: pass at `df69301`.
+- Main CI, CodeQL, and Actionlint: pass on `df69301`.
+- Release workflow `v0.0.2`: pass (`40463183950`).
+- `scripts/verify-release.sh v0.0.2`: pass (checksums, cosign identity, archive contents, binary identity, MCP surface).
+- `go install ...@v0.0.2`: pass; reports version `0.0.2` with `commit`/`built` `unknown`.
+- `scripts/verify-release.sh v0.0.1`: pass at the previous release.
 
 ## Known issues and limitations
 
-- Version identity is inconsistent across install paths: release archives report `0.0.1`, `go install ...@v0.0.1` reports `v0.0.1` with `commit`/`built` unknown. An approved normalization patch is pending.
+- Module builds from `go install` report `commit` and `built` as `unknown`; this is expected because Go does not embed VCS metadata there.
 - Secret scanning and push protection are enabled; non-provider patterns and validity checks remain disabled because the account does not support them.
 - `scripts/verify-release.sh` requires `gh`, `cosign`, `tar`, `python3`, and `unzip` for full coverage.
 
 ## Pending work and next action
 
-1. Add a version-normalization patch and, if approved, a `v0.0.2` release.
-2. Implement Phase 1 in three reviewable PRs:
+1. Implement Phase 1 in three reviewable PRs:
    - RFC 8785 canonical JSON with `github.com/gowebpki/jcs` and conformance/fuzz tests;
    - evidence schema `ree.evidence/1` with strict encode/decode and golden tests;
    - deterministic `ree.bundle/1` export/import with limits, integrity, and fuzz tests.
-3. Keep CLI and MCP surfaces unchanged during Phase 1.
+2. Keep CLI and MCP surfaces unchanged during Phase 1.
+3. Record decisions in ADR 0003 and update dependency and threat-model documentation.
 
 ## Update rules
 
