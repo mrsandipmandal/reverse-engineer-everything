@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Bounded ELF32/ELF64 header and raw table reader with extended numbering, explicit truncation limitations, crafted 32/64-bit little/big-endian fixtures, a fuzz target, and differential tests against `debug/elf`.
 - Bounded ELF section names, section and segment contents, `SHT_NOTE` scanning, GNU build-id extraction, and `.comment` entries with distinct absent, unavailable, malformed, and limit errors.
 - Bounded ELF symbol and relocation decoding with the null symbol, per-table index provenance, UTF-8 name resolution, `SHN_XINDEX` support, explicit or stored addend semantics, and differential symbol checks against `debug/elf`.
+- `internal/providers/elf`, the first evidence provider: a bounded `ree.payload.elf/1` projection of ELF headers, sections, segments, symbols, relocations, notes, build-id, and `.comment` entries into a sealed `ree.evidence/1` record, with content digests, payload and hashing budgets, and explicit coverage, limitations, and unknowns.
 
 ## [0.0.2] - 2026-10-27
 

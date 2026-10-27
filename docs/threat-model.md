@@ -101,6 +101,26 @@ Mitigations:
 
 Residual risk: symbol and relocation indexes are per-table and only meaningful with the original artifact. A consumer that resolves a `SymIndex` against the wrong table, or that reads a relocation as an applied value, can still produce a wrong claim. Symbol versioning and relocation application remain out of scope.
 
+### ELF evidence projection
+
+Threat: the adapter turns a truncated, unavailable, or oversized observation into a complete-looking evidence record; or a crafted artifact inflates the record, exceeds an evidence limit, and causes the encoder to fail after expensive work.
+
+Mitigations:
+
+- hash exactly the caller-declared byte length and fail with `ErrRead` on a short read, so the subject digest always names the whole artifact;
+- return no evidence on parse, digest, or reader failure;
+- derive coverage from recorded limitations and unknowns, never from array length alone;
+- emit `uint64` fields and addends as decimal strings so a JSON double cannot silently change them;
+- omit `data_sha256` when a range was not hashed and record why, instead of hashing a prefix;
+- bound the payload by a byte budget shared across tables, trim only to a prefix, and state the number of omitted entries;
+- cap inline note descriptors and hash larger ones so one note cannot exceed the evidence string limit;
+- aggregate per-entry failures and cap limitation and unknown lists;
+- let `evidence.Encode` validate the sealed record before returning it;
+- keep provider identity fixed and version caller-supplied, so a record cannot claim an engine that did not run;
+- never execute, decompress, map, or write artifact content, and do not depend on `debug/elf`.
+
+Residual risk: a consumer that ignores coverage and limitations can still read a trimmed table as complete. Content digests prove equality of a declared range, not that the range means what its section name suggests.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.

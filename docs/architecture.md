@@ -134,3 +134,12 @@ Phase 2 adds a read-only ELF reader in `internal/formats/elf`:
 - explicit `ErrOutOfRange`, `ErrUnavailable`, and `ErrNotFound` so callers can distinguish absent metadata from uncovered or malformed metadata.
 
 The reader never executes, decompresses, or maps the artifact. Content is returned as stored bytes. See [ADR 0004](adr/0004-elf-reader.md) for the header and table decisions, [ADR 0005](adr/0005-elf-metadata.md) for the content and metadata limits, error semantics, and note and comment decoding rules, and [ADR 0006](adr/0006-elf-symbols-relocations.md) for symbol and relocation decoding, names, extended indexes, and addend semantics.
+
+Phase 2 also adds the first evidence provider, `internal/providers/elf`:
+
+- `Observe` hashes the artifact, parses it with the reader, and returns an `ree.evidence/1` record with a `ree.payload.elf/1` payload;
+- the payload carries the validated header, section and segment tables with content digests, symbols, relocations, notes, GNU build-id, and `.comment` entries;
+- the payload budget and content-hash budget bound every table, and trimming is a prefix in artifact order with an explicit limitation;
+- coverage is `complete` only when no limitation or unknown was recorded, and unreadable artifacts produce an error instead of evidence.
+
+The provider does not execute, decompress, or write content and does not depend on `debug/elf`. See [ADR 0007](adr/0007-elf-evidence-adapter.md) for the projection decisions and [payload-elf.md](payload-elf.md) for the wire format. No CLI or MCP surface calls the provider yet.
