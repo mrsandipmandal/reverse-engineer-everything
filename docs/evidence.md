@@ -100,3 +100,9 @@ if err != nil {
 }
 digest, err := decoded.Digest()
 ```
+
+## Payload schemas
+
+The evidence core does not constrain payload members beyond canonical JSON and
+the record limits. Each provider documents its payload separately. The first is
+[`ree.payload.elf/1`](payload-elf.md) from the built-in ELF provider.
