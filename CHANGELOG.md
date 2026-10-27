@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Bounded ELF symbol and relocation decoding with the null symbol, per-table index provenance, UTF-8 name resolution, `SHN_XINDEX` support, explicit or stored addend semantics, and differential symbol checks against `debug/elf`.
 - `internal/providers/elf`, the first evidence provider: a bounded `ree.payload.elf/1` projection of ELF headers, sections, segments, symbols, relocations, notes, build-id, and `.comment` entries into a sealed `ree.evidence/1` record, with content digests, payload and hashing budgets, and explicit coverage, limitations, and unknowns.
 - Bounded PE32/PE32+ header, optional header, data directory, and section table reader with declared-count tracking, deterministic truncation limitations, section content reads, RVA mapping, overlay bounds, crafted PE32/PE32+ fixtures, a fuzz target, and differential tests against `debug/pe`.
+- Bounded PE import and export decoding: import descriptors, original-thunk and IAT thunk arrays, named and ordinal thunks, export address, name, and ordinal tables, unnamed exports, forwarder strings, per-string and per-call string budgets, aggregated name limitations, and an imported-symbol differential test against `debug/pe`.
 
 ## [0.0.2] - 2026-10-27
 

@@ -760,10 +760,16 @@ func FuzzParse(f *testing.F) {
 	f.Add([]byte("MZ"))
 
 	limits := repe.Limits{
-		ArtifactBytes:    1 << 20,
-		Sections:         8,
-		DataDirectories:  8,
-		SectionDataBytes: 16 << 10,
+		ArtifactBytes:     1 << 20,
+		Sections:          8,
+		DataDirectories:   8,
+		SectionDataBytes:  16 << 10,
+		ImportModules:     8,
+		ImportThunks:      32,
+		Exports:           32,
+		StringBytes:       256,
+		ImportStringBytes: 4 << 10,
+		ExportStringBytes: 4 << 10,
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		file, err := repe.ParseWithLimits(bytes.NewReader(data), int64(len(data)), limits)
@@ -818,6 +824,46 @@ func FuzzParse(f *testing.F) {
 			mapping := file.MapRVA(rva)
 			if mapping.SectionIndex < -1 || mapping.SectionIndex >= sections {
 				t.Fatalf("MapRVA(%#x) section index = %d", rva, mapping.SectionIndex)
+			}
+		}
+
+		imports, err := file.Imports()
+		if err == nil {
+			if imports == nil {
+				t.Fatal("Imports() returned nil table without error")
+			}
+			if len(imports.Modules) > limits.ImportModules {
+				t.Fatalf("loaded %d import modules above limit %d", len(imports.Modules), limits.ImportModules)
+			}
+			thunks := 0
+			for i, module := range imports.Modules {
+				if module.Index != i {
+					t.Fatalf("import module index = %d at position %d", module.Index, i)
+				}
+				thunks += len(module.Thunks)
+				for j, thunk := range module.Thunks {
+					if thunk.Index != j {
+						t.Fatalf("import thunk index = %d at position %d", thunk.Index, j)
+					}
+				}
+			}
+			if thunks > limits.ImportThunks {
+				t.Fatalf("loaded %d import thunks above limit %d", thunks, limits.ImportThunks)
+			}
+		}
+
+		exports, err := file.Exports()
+		if err == nil {
+			if exports == nil {
+				t.Fatal("Exports() returned nil table without error")
+			}
+			if len(exports.Exports) > limits.Exports {
+				t.Fatalf("loaded %d exports above limit %d", len(exports.Exports), limits.Exports)
+			}
+			for i, entry := range exports.Exports {
+				if entry.Index != i {
+					t.Fatalf("export index = %d at position %d", entry.Index, i)
+				}
 			}
 		}
 	})

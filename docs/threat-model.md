@@ -142,6 +142,24 @@ Mitigations:
 
 Residual risk: the PE reader is not a sandbox. It bounds its own allocations and reads, but a later consumer that trusts a declared RVA, directory address, or section raw range without checking it can still misbehave. Overlapping sections and inconsistent virtual and raw sizes are preserved as observed values, not repaired.
 
+### PE imports and exports
+
+Threat: a crafted import descriptor, thunk array, export directory, name table, ordinal table, or forwarder graph causes unbounded traversal, repeated work across modules, allocation growth from long strings, a panic, or a name that appears decoded when it is not.
+
+Mitigations:
+
+- resolve every directory, array, thunk, and string through one containment helper that requires the whole read to sit inside the headers region or a single section's file-backed range;
+- cap import modules at 4,096 and share one 65,536-thunk budget across every module, so the module count cannot multiply per-module work;
+- cap exports and export names at 65,536 each and load the function table as one array, so ordinals always refer to loaded slots;
+- bound one name at 4 KiB and all import and export strings at 16 MiB per call, so a file with the maximum entry count cannot force unbounded string reading;
+- treat a non-ordinal thunk value above 32 bits in PE32+ as an unavailable name instead of truncating it into a fabricated address;
+- classify an export as a forwarder only when its RVA is inside the export directory range, and never follow a forwarder;
+- record per-entry availability flags plus aggregated limitations for unavailable, invalid, and over-limit names instead of presenting empty names as decoded values;
+- treat a bad name ordinal, a duplicate name, and a missing name array as limitations with the function table still usable, and keep declared counts separate from loaded entries;
+- fuzz the whole reader, including `Imports` and `Exports`, and compare imported symbol decoding against `debug/pe` in tests only.
+
+Residual risk: import and export decoding is intentionally lenient about a declared directory size because real artifacts often declare a size that does not cover the terminated array; the zero descriptor, containment, and count limits are the real bounds. Evidence must carry per-entry availability and the limitation list, because a consumer that reads only names cannot tell an undecodable name from one the artifact does not have. Forwarder strings are stored targets, not verified resolutions.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.
