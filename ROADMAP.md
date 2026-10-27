@@ -6,7 +6,7 @@ Work is split into small, reviewable phases. Each phase starts with acceptance c
 |---|---|---|
 | 0a | Go module, `ree version`, repository baseline, CI, open-source files | Complete |
 | 0b | MCP server, `ree doctor`, security and release workflows | Complete |
-| 0c | First release, repository hardening | In progress |
+| 0c | First release, repository hardening | Complete |
 | 1 | Evidence core, canonical JSON, schema validation | Planned |
 | 2 | ELF read-only provider | Planned |
 | 3 | PE read-only provider | Planned |
