@@ -47,6 +47,22 @@ Mitigations:
 - fuzz tests for parsers;
 - no panics for malformed input.
 
+### ELF parsing
+
+Threat: a crafted ELF header, extended count, table offset, or entry size causes excessive allocation, integer overflow, a panic, or a misleading complete-looking table.
+
+Mitigations:
+
+- validate the identifier, class, byte order, version, header size, and entry sizes before reading tables;
+- treat contradictory counts, missing tables, and out-of-range section name indexes as structural errors;
+- compare declared counts with configured limits and available bytes before allocating;
+- clamp table reads to complete entries and report `Truncated` plus a deterministic limitation;
+- keep raw declared counts separate from loaded table lengths;
+- fuzz the parser and compare ordinary decoding against `debug/elf` in tests;
+- never execute, map, or write artifact content.
+
+Residual risk: the ELF reader is not a sandbox. It bounds its own allocations and reads, but a later consumer that trusts a declared offset or size without checking it can still misbehave.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.
