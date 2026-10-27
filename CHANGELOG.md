@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - RFC 8785 canonical JSON package with byte and depth limits, SHA-256 digests, conformance tests, and a fuzz target.
 - `ree.evidence/1` schema with strict canonical-only decoding, payload integrity digests, explicit coverage and unknowns, size and count limits, golden tests, and a fuzz target.
 - `ree.bundle/1` deterministic export and in-memory import with record-digest ordering, duplicate and order rejection, a bundle digest, tamper tests, and a fuzz target.
+- Bounded ELF32/ELF64 header and raw table reader with extended numbering, explicit truncation limitations, crafted 32/64-bit little/big-endian fixtures, a fuzz target, and differential tests against `debug/elf`.
 
 ## [0.0.2] - 2026-10-27
 

@@ -118,3 +118,14 @@ Phase 1 adds the evidence core as pure library packages:
 - `internal/contracts/bundle` defines the deterministic `ree.bundle/1` document with export and in-memory import.
 
 No CLI or MCP surface consumes these packages yet. That arrives with the Phase 6 analysis surface, after providers exist. See [ADR 0003](adr/0003-evidence-core.md) for decisions and limits, [evidence.md](evidence.md) for the record wire format, and [bundle.md](bundle.md) for the bundle format.
+
+## Phase 2
+
+Phase 2 adds a read-only ELF reader in `internal/formats/elf`:
+
+- validated ELF32 and ELF64 identifiers and file headers for little-endian and big-endian artifacts;
+- extended numbering for section and program counts and the section name index;
+- raw section and program header tables with declared-count versus loaded-count semantics;
+- explicit `Truncated` and `Limitations` reporting for physical truncation and configured count limits.
+
+Symbols, relocations, notes, section names and contents, and build metadata are added by later Phase 2 increments on top of this foundation. The reader never executes or maps the artifact. See [ADR 0004](adr/0004-elf-reader.md) for the accepted inputs, limits, error model, and differential-testing approach.
