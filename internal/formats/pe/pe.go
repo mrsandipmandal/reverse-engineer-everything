@@ -4,8 +4,8 @@
 // Parse validates the DOS header, the PE signature, the COFF file header, and
 // the optional header, then loads the data directory and section tables behind
 // explicit size, count, and allocation limits. Section names are decoded with
-// the header; section contents are read on demand under a separate limit.
-// Imports, exports, resources, certificates, and COFF symbols are left to later
+// the header; section contents, imports, and exports are read on demand under
+// separate limits. Resources, certificates, and COFF symbols are left to later
 // layers.
 //
 // Input is untrusted. A structurally inconsistent header fails with a sentinel
@@ -36,6 +36,18 @@ const (
 	MaxDataDirectories = 16
 	// MaxSectionDataBytes bounds one section content read.
 	MaxSectionDataBytes int64 = 64 << 20
+	// MaxImportModules bounds the import descriptors loaded.
+	MaxImportModules = 4096
+	// MaxImportThunks bounds the total import thunks loaded across modules.
+	MaxImportThunks = 65536
+	// MaxExports bounds the exported functions and names loaded.
+	MaxExports = 65536
+	// MaxStringBytes bounds one import, export, forwarder, or DLL name.
+	MaxStringBytes = 4 << 10
+	// MaxImportStringBytes bounds all import strings read in one call.
+	MaxImportStringBytes int64 = 16 << 20
+	// MaxExportStringBytes bounds all export strings read in one call.
+	MaxExportStringBytes int64 = 16 << 20
 )
 
 // Sentinel errors. Errors returned by this package wrap exactly one of these
@@ -57,6 +69,9 @@ var (
 	// ErrUnavailable reports section content that is not present in the
 	// artifact, such as a raw range beyond the artifact end.
 	ErrUnavailable = errors.New("pe: content unavailable")
+	// ErrNotFound reports metadata that the artifact does not declare, such as
+	// an import or export directory with no address and no size.
+	ErrNotFound = errors.New("pe: metadata not found")
 )
 
 // Optional header magic values.
@@ -197,19 +212,41 @@ func (f *File) Size() int64 {
 // Limits bounds parsing work. A zero or negative field selects the package
 // default. Values above the package maximum are clamped to that maximum.
 type Limits struct {
-	ArtifactBytes    int64
-	Sections         int
-	DataDirectories  int
+	// ArtifactBytes bounds the artifact size accepted by Parse.
+	ArtifactBytes int64
+	// Sections bounds the section headers loaded.
+	Sections int
+	// DataDirectories bounds the data directory entries loaded.
+	DataDirectories int
+	// SectionDataBytes bounds one section content read.
 	SectionDataBytes int64
+	// ImportModules bounds the import descriptors loaded.
+	ImportModules int
+	// ImportThunks bounds all import thunks loaded across modules.
+	ImportThunks int
+	// Exports bounds the exported functions and the exported names loaded.
+	Exports int
+	// StringBytes bounds one import, export, or forwarder name.
+	StringBytes int
+	// ImportStringBytes bounds all import strings read in one Imports call.
+	ImportStringBytes int64
+	// ExportStringBytes bounds all export strings read in one Exports call.
+	ExportStringBytes int64
 }
 
 // DefaultLimits returns the package limits.
 func DefaultLimits() Limits {
 	return Limits{
-		ArtifactBytes:    MaxArtifactBytes,
-		Sections:         MaxSections,
-		DataDirectories:  MaxDataDirectories,
-		SectionDataBytes: MaxSectionDataBytes,
+		ArtifactBytes:     MaxArtifactBytes,
+		Sections:          MaxSections,
+		DataDirectories:   MaxDataDirectories,
+		SectionDataBytes:  MaxSectionDataBytes,
+		ImportModules:     MaxImportModules,
+		ImportThunks:      MaxImportThunks,
+		Exports:           MaxExports,
+		StringBytes:       MaxStringBytes,
+		ImportStringBytes: MaxImportStringBytes,
+		ExportStringBytes: MaxExportStringBytes,
 	}
 }
 
@@ -238,6 +275,42 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.SectionDataBytes > MaxSectionDataBytes {
 		l.SectionDataBytes = MaxSectionDataBytes
+	}
+	if l.ImportModules <= 0 {
+		l.ImportModules = defaults.ImportModules
+	}
+	if l.ImportModules > MaxImportModules {
+		l.ImportModules = MaxImportModules
+	}
+	if l.ImportThunks <= 0 {
+		l.ImportThunks = defaults.ImportThunks
+	}
+	if l.ImportThunks > MaxImportThunks {
+		l.ImportThunks = MaxImportThunks
+	}
+	if l.Exports <= 0 {
+		l.Exports = defaults.Exports
+	}
+	if l.Exports > MaxExports {
+		l.Exports = MaxExports
+	}
+	if l.StringBytes <= 0 {
+		l.StringBytes = defaults.StringBytes
+	}
+	if l.StringBytes > MaxStringBytes {
+		l.StringBytes = MaxStringBytes
+	}
+	if l.ImportStringBytes <= 0 {
+		l.ImportStringBytes = defaults.ImportStringBytes
+	}
+	if l.ImportStringBytes > MaxImportStringBytes {
+		l.ImportStringBytes = MaxImportStringBytes
+	}
+	if l.ExportStringBytes <= 0 {
+		l.ExportStringBytes = defaults.ExportStringBytes
+	}
+	if l.ExportStringBytes > MaxExportStringBytes {
+		l.ExportStringBytes = MaxExportStringBytes
 	}
 	return l
 }

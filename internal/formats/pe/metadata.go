@@ -1,6 +1,7 @@
 package pe
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -115,4 +116,27 @@ func (f *File) MapRVA(rva uint32) RVAMapping {
 
 	mapping.Ambiguous = matches > 1
 	return mapping
+}
+
+// metadataDirectory returns the loaded directory at index and rejects absent or
+// internally inconsistent address and size fields.
+func (f *File) metadataDirectory(index int, name string) (DataDirectory, error) {
+	directory, err := f.DataDirectory(index)
+	if err != nil {
+		if errors.Is(err, ErrOutOfRange) {
+			return DataDirectory{}, fmt.Errorf("%w: %s directory is not declared", ErrNotFound, name)
+		}
+		if errors.Is(err, ErrUnavailable) {
+			return DataDirectory{}, fmt.Errorf("%w: %s directory is not loaded", ErrUnavailable, name)
+		}
+		return DataDirectory{}, err
+	}
+	if directory.VirtualAddress == 0 && directory.Size == 0 {
+		return DataDirectory{}, fmt.Errorf("%w: %s directory is absent", ErrNotFound, name)
+	}
+	if directory.VirtualAddress == 0 || directory.Size == 0 {
+		return DataDirectory{}, fmt.Errorf("%w: %s directory has address %#x and size %d",
+			ErrInvalid, name, directory.VirtualAddress, directory.Size)
+	}
+	return directory, nil
 }

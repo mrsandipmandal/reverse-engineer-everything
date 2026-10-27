@@ -157,4 +157,11 @@ Phase 3 adds a read-only PE reader in `internal/formats/pe`. The first increment
 - overlay bounds derived from `SizeOfHeaders` and section raw ends, omitted rather than guessed when a raw range extends beyond the artifact;
 - explicit `ErrInvalid`, `ErrTruncated`, `ErrLimit`, `ErrRead`, `ErrOutOfRange`, and `ErrUnavailable` sentinels.
 
-The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes. Later Phase 3 increments add imports and exports, resources and certificates, and the `ree.payload.pe/1` evidence provider. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions. No CLI or MCP surface calls the PE reader yet.
+The imports and exports increment adds on-demand directory decoders:
+
+- `File.Imports` scans import descriptors up to an all-zero terminator and decodes module names, original-thunk or IAT thunk arrays, named thunks with their hint, and ordinal thunks with the magic-specific high-bit flag;
+- `File.Exports` decodes the export directory, the function address table, the name and ordinal tables, unnamed slots, and forwarders recognized by a function RVA inside the export directory range;
+- both share a containment helper that resolves one RVA to a contiguous file-backed range inside the headers region or one section, so a structure cannot be assembled across sections;
+- import and export name work is bounded by a per-string limit and by a separate per-call string budget, with distinct `ErrNotFound`, `ErrUnavailable`, `ErrInvalid`, and `ErrLimit` results for the directory, containment, and limit cases.
+
+The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes, and forwarders are reported as stored strings rather than followed. Later Phase 3 increments add resources and certificates, and the `ree.payload.pe/1` evidence provider. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions and [ADR 0009](adr/0009-pe-imports-exports.md) for the import and export decisions. No CLI or MCP surface calls the PE reader yet.
