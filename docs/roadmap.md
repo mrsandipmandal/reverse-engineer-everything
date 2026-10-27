@@ -142,10 +142,32 @@ Out of scope for this phase:
 
 ## Phase 3: PE
 
+Status: in progress.
+
 Scope:
 
 - Read-only PE32/PE32+ reader.
 - Headers, sections, imports, exports, resources, and certificates.
+- A `ree.payload.pe/1` evidence adapter.
+
+Acceptance criteria:
+
+- PE32 and PE32+ artifacts parse with validated DOS, PE, COFF, and optional headers, and the declared counts of data directories and sections stay separate from the loaded counts.
+- A structurally inconsistent header fails with a sentinel error; a physically truncated or count-limited section table returns a partial result with `Truncated` and a deterministic limitation, and a trimmed data directory table records a limitation.
+- Section names are decoded and validated as UTF-8; section content is read on demand and bounded by an explicit per-read limit.
+- RVA mapping covers the headers region and the section table, is deterministic for overlapping sections, and marks virtual-only tails as not file-backed.
+- The overlay is reported only when its bounds are known.
+- Import names and ordinals, export names and ordinals and forwarders, nested resources, and certificate entries decode in deterministic order within explicit module, thunk, export, resource, and certificate limits.
+- A resource tree cannot cycle or fan out without bound; the certificate table claims no trust or signature validity.
+- `debug/pe` is used only in tests as a differential oracle, never as a production dependency.
+- Fuzz targets do not panic; the evidence adapter emits no evidence for an unreadable artifact and reports coverage and limitations.
+- `go test`, `go test -race`, lint, govulncheck, and actionlint pass; the Windows, macOS, and Linux CI matrix is green.
+
+Out of scope for this phase:
+
+- COFF symbols, base relocations, TLS, debug directory or PDB, CLR metadata, bound and delay-load imports, and the Rich header;
+- Authenticode trust or chain validation, unpacking, execution, mapping, or writing artifact content;
+- CLI and MCP surfaces, runtime analysis, and a release tag.
 
 ## Phase 4: Mach-O
 
