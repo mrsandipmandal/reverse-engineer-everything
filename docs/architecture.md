@@ -126,6 +126,9 @@ Phase 2 adds a read-only ELF reader in `internal/formats/elf`:
 - validated ELF32 and ELF64 identifiers and file headers for little-endian and big-endian artifacts;
 - extended numbering for section and program counts and the section name index;
 - raw section and program header tables with declared-count versus loaded-count semantics;
-- explicit `Truncated` and `Limitations` reporting for physical truncation and configured count limits.
+- explicit `Truncated` and `Limitations` reporting for physical truncation and configured count limits;
+- bounded section names and section and segment contents, read on demand;
+- bounded `SHT_NOTE` scanning, GNU build-id extraction, and NUL-separated `.comment` entries;
+- explicit `ErrOutOfRange`, `ErrUnavailable`, and `ErrNotFound` so callers can distinguish absent metadata from uncovered or malformed metadata.
 
-Symbols, relocations, notes, section names and contents, and build metadata are added by later Phase 2 increments on top of this foundation. The reader never executes or maps the artifact. See [ADR 0004](adr/0004-elf-reader.md) for the accepted inputs, limits, error model, and differential-testing approach.
+Symbols and relocations are added by a later Phase 2 increment on top of this foundation. The reader never executes, decompresses, or maps the artifact. Content is returned as stored bytes. See [ADR 0004](adr/0004-elf-reader.md) for the header and table decisions and [ADR 0005](adr/0005-elf-metadata.md) for the content and metadata limits, error semantics, and note and comment decoding rules.

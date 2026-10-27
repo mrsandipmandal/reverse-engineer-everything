@@ -21,6 +21,7 @@ func TestDifferentialAgainstDebugELF(t *testing.T) {
 		{name: "fixture/ELF32/big", data: buildFixture(reeelf.Class32, reeelf.DataBig).data},
 		{name: "fixture/ELF64/little", data: buildFixture(reeelf.Class64, reeelf.DataLittle).data},
 		{name: "fixture/ELF64/big", data: buildFixture(reeelf.Class64, reeelf.DataBig).data},
+		{name: "fixture/metadata", data: buildMetadataFixture(reeelf.Class64, reeelf.DataLittle, metadataNotes(reeelf.DataLittle)).data},
 	}
 	if path, err := os.Executable(); err == nil {
 		if data, err := os.ReadFile(path); err == nil && len(data) >= 4 &&

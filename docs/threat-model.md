@@ -63,6 +63,24 @@ Mitigations:
 
 Residual risk: the ELF reader is not a sandbox. It bounds its own allocations and reads, but a later consumer that trusts a declared offset or size without checking it can still misbehave.
 
+### ELF content and metadata reads
+
+Threat: a crafted section size, segment size, string table, note, or `.comment` section causes excessive allocation, unbounded output, or a misleading "absent" result; or an artifact-controlled string reaches a consumer that assumes text.
+
+Mitigations:
+
+- bound each section and segment read by an explicit per-read limit, then by the declared artifact size;
+- return `ErrUnavailable` for ranges outside the artifact instead of a short slice, so partial data cannot be mistaken for complete data;
+- treat `SHT_NOBITS` as having no file bytes;
+- bound section and note names, string table and `.comment` sizes, note count, total note bytes, build-id size, and comment entry count;
+- cap the note limitation list so malformed artifacts cannot produce unbounded diagnostics;
+- reject invalid UTF-8 in names, note names, and `.comment` entries rather than normalizing it;
+- report partial note coverage through `NoteSet.Truncated` and return `ErrUnavailable`, not `ErrNotFound`, when absence cannot be proven;
+- reject conflicting or empty GNU build-id notes;
+- never decompress, execute, or write content; compressed sections are returned as stored bytes.
+
+Residual risk: callers that ignore `Truncated`, `Limitations`, or `ErrUnavailable` can still overstate what an artifact contains. Evidence emitters must map these signals into coverage and limitations rather than into empty values.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.
