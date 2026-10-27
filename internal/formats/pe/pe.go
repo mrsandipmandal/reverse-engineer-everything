@@ -4,9 +4,9 @@
 // Parse validates the DOS header, the PE signature, the COFF file header, and
 // the optional header, then loads the data directory and section tables behind
 // explicit size, count, and allocation limits. Section names are decoded with
-// the header; section contents, imports, and exports are read on demand under
-// separate limits. Resources, certificates, and COFF symbols are left to later
-// layers.
+// the header; section contents, imports, exports, resources, and certificates
+// are read on demand under separate limits. COFF symbols are left to a later
+// layer.
 //
 // Input is untrusted. A structurally inconsistent header fails with a sentinel
 // error. A section table that is cut short by the artifact end or by a
@@ -48,6 +48,18 @@ const (
 	MaxImportStringBytes int64 = 16 << 20
 	// MaxExportStringBytes bounds all export strings read in one call.
 	MaxExportStringBytes int64 = 16 << 20
+	// MaxResourceDepth bounds the resource directory nesting loaded below the
+	// root directory.
+	MaxResourceDepth = 8
+	// MaxResourceEntries bounds the resource directory entries and data
+	// entries walked in one call.
+	MaxResourceEntries = 4096
+	// MaxResourceStringBytes bounds all resource name strings read in one call.
+	MaxResourceStringBytes int64 = 16 << 20
+	// MaxCertificates bounds the WIN_CERTIFICATE entries loaded.
+	MaxCertificates = 256
+	// MaxCertificateBytes bounds the declared certificate table size.
+	MaxCertificateBytes int64 = 8 << 20
 )
 
 // Sentinel errors. Errors returned by this package wrap exactly one of these
@@ -70,7 +82,8 @@ var (
 	// artifact, such as a raw range beyond the artifact end.
 	ErrUnavailable = errors.New("pe: content unavailable")
 	// ErrNotFound reports metadata that the artifact does not declare, such as
-	// an import or export directory with no address and no size.
+	// an import, export, resource, or security directory with no address and no
+	// size.
 	ErrNotFound = errors.New("pe: metadata not found")
 )
 
@@ -232,21 +245,37 @@ type Limits struct {
 	ImportStringBytes int64
 	// ExportStringBytes bounds all export strings read in one Exports call.
 	ExportStringBytes int64
+	// ResourceDepth bounds the resource directory nesting below the root.
+	ResourceDepth int
+	// ResourceEntries bounds the resource directory entries walked in one
+	// Resources call.
+	ResourceEntries int
+	// ResourceStringBytes bounds all resource names read in one Resources call.
+	ResourceStringBytes int64
+	// Certificates bounds the WIN_CERTIFICATE entries loaded.
+	Certificates int
+	// CertificateBytes bounds the declared certificate table size.
+	CertificateBytes int64
 }
 
 // DefaultLimits returns the package limits.
 func DefaultLimits() Limits {
 	return Limits{
-		ArtifactBytes:     MaxArtifactBytes,
-		Sections:          MaxSections,
-		DataDirectories:   MaxDataDirectories,
-		SectionDataBytes:  MaxSectionDataBytes,
-		ImportModules:     MaxImportModules,
-		ImportThunks:      MaxImportThunks,
-		Exports:           MaxExports,
-		StringBytes:       MaxStringBytes,
-		ImportStringBytes: MaxImportStringBytes,
-		ExportStringBytes: MaxExportStringBytes,
+		ArtifactBytes:       MaxArtifactBytes,
+		Sections:            MaxSections,
+		DataDirectories:     MaxDataDirectories,
+		SectionDataBytes:    MaxSectionDataBytes,
+		ImportModules:       MaxImportModules,
+		ImportThunks:        MaxImportThunks,
+		Exports:             MaxExports,
+		StringBytes:         MaxStringBytes,
+		ImportStringBytes:   MaxImportStringBytes,
+		ExportStringBytes:   MaxExportStringBytes,
+		ResourceDepth:       MaxResourceDepth,
+		ResourceEntries:     MaxResourceEntries,
+		ResourceStringBytes: MaxResourceStringBytes,
+		Certificates:        MaxCertificates,
+		CertificateBytes:    MaxCertificateBytes,
 	}
 }
 
@@ -311,6 +340,36 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.ExportStringBytes > MaxExportStringBytes {
 		l.ExportStringBytes = MaxExportStringBytes
+	}
+	if l.ResourceDepth <= 0 {
+		l.ResourceDepth = defaults.ResourceDepth
+	}
+	if l.ResourceDepth > MaxResourceDepth {
+		l.ResourceDepth = MaxResourceDepth
+	}
+	if l.ResourceEntries <= 0 {
+		l.ResourceEntries = defaults.ResourceEntries
+	}
+	if l.ResourceEntries > MaxResourceEntries {
+		l.ResourceEntries = MaxResourceEntries
+	}
+	if l.ResourceStringBytes <= 0 {
+		l.ResourceStringBytes = defaults.ResourceStringBytes
+	}
+	if l.ResourceStringBytes > MaxResourceStringBytes {
+		l.ResourceStringBytes = MaxResourceStringBytes
+	}
+	if l.Certificates <= 0 {
+		l.Certificates = defaults.Certificates
+	}
+	if l.Certificates > MaxCertificates {
+		l.Certificates = MaxCertificates
+	}
+	if l.CertificateBytes <= 0 {
+		l.CertificateBytes = defaults.CertificateBytes
+	}
+	if l.CertificateBytes > MaxCertificateBytes {
+		l.CertificateBytes = MaxCertificateBytes
 	}
 	return l
 }

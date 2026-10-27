@@ -760,16 +760,21 @@ func FuzzParse(f *testing.F) {
 	f.Add([]byte("MZ"))
 
 	limits := repe.Limits{
-		ArtifactBytes:     1 << 20,
-		Sections:          8,
-		DataDirectories:   8,
-		SectionDataBytes:  16 << 10,
-		ImportModules:     8,
-		ImportThunks:      32,
-		Exports:           32,
-		StringBytes:       256,
-		ImportStringBytes: 4 << 10,
-		ExportStringBytes: 4 << 10,
+		ArtifactBytes:       1 << 20,
+		Sections:            8,
+		DataDirectories:     8,
+		SectionDataBytes:    16 << 10,
+		ImportModules:       8,
+		ImportThunks:        32,
+		Exports:             32,
+		StringBytes:         256,
+		ImportStringBytes:   4 << 10,
+		ExportStringBytes:   4 << 10,
+		ResourceDepth:       4,
+		ResourceEntries:     16,
+		ResourceStringBytes: 4 << 10,
+		Certificates:        4,
+		CertificateBytes:    64 << 10,
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		file, err := repe.ParseWithLimits(bytes.NewReader(data), int64(len(data)), limits)
@@ -863,6 +868,39 @@ func FuzzParse(f *testing.F) {
 			for i, entry := range exports.Exports {
 				if entry.Index != i {
 					t.Fatalf("export index = %d at position %d", entry.Index, i)
+				}
+			}
+		}
+
+		resources, err := file.Resources()
+		if err == nil {
+			if resources == nil {
+				t.Fatal("Resources() returned nil table without error")
+			}
+			if len(resources.Resources) > limits.ResourceEntries {
+				t.Fatalf("loaded %d resources above limit %d", len(resources.Resources), limits.ResourceEntries)
+			}
+			for _, resource := range resources.Resources {
+				if len(resource.Path) == 0 || len(resource.Path) > limits.ResourceDepth+1 {
+					t.Fatalf("resource path depth = %d", len(resource.Path))
+				}
+			}
+		}
+
+		certificates, err := file.Certificates()
+		if err == nil {
+			if certificates == nil {
+				t.Fatal("Certificates() returned nil table without error")
+			}
+			if len(certificates.Certificates) > limits.Certificates {
+				t.Fatalf("loaded %d certificates above limit %d", len(certificates.Certificates), limits.Certificates)
+			}
+			for i, certificate := range certificates.Certificates {
+				if certificate.Index != i {
+					t.Fatalf("certificate index = %d at position %d", certificate.Index, i)
+				}
+				if certificate.DataOffset <= certificate.Offset || certificate.DataSize+8 != certificate.Length {
+					t.Fatalf("certificate %d = %+v", i, certificate)
 				}
 			}
 		}
