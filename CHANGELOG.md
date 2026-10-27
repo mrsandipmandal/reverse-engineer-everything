@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-10-27
+
 ### Added
 
 - Initial Go module and `ree version` command.
@@ -18,3 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Go 1.26.10 baseline with patched standard-library dependencies.
 - Third-party license notices for runtime dependencies.
 - Tag-driven GoReleaser workflow with archives, checksums, SBOMs, and keyless cosign signing.
+- `scripts/verify-release.sh` for post-release artifact, signature, binary, and MCP verification.
+
+[Unreleased]: https://github.com/mrsandipmandal/reverse-engineer-everything/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/mrsandipmandal/reverse-engineer-everything/releases/tag/v0.0.1
