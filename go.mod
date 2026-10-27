@@ -2,7 +2,10 @@ module github.com/mrsandipmandal/reverse-engineer-everything
 
 go 1.26.10
 
-require github.com/modelcontextprotocol/go-sdk v1.8.0
+require (
+	github.com/gowebpki/jcs v1.0.2
+	github.com/modelcontextprotocol/go-sdk v1.8.0
+)
 
 require (
 	github.com/google/jsonschema-go v0.4.3 // indirect
