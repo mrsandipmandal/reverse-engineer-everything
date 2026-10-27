@@ -143,3 +143,18 @@ Phase 2 also adds the first evidence provider, `internal/providers/elf`:
 - coverage is `complete` only when no limitation or unknown was recorded, and unreadable artifacts produce an error instead of evidence.
 
 The provider does not execute, decompress, or write content and does not depend on `debug/elf`. See [ADR 0007](adr/0007-elf-evidence-adapter.md) for the projection decisions and [payload-elf.md](payload-elf.md) for the wire format. No CLI or MCP surface calls the provider yet.
+
+## Phase 3
+
+Phase 3 adds a read-only PE reader in `internal/formats/pe`. The first increment provides:
+
+- validated DOS, PE, and COFF headers with `e_lfanew` overlapping the DOS header rejected as structural;
+- separate PE32 and PE32+ optional header decoding, including the 64-bit image base and stack and heap sizes that only PE32+ carries;
+- up to sixteen data directory entries with the declared count kept separate from the loaded count;
+- up to 96 section headers, decoded UTF-8 names, raw name bytes, and on-demand section content reads;
+- declared-count versus loaded-count semantics with explicit `Truncated` and `Limitations` reporting for a physically short section table or a configured count limit;
+- deterministic RVA mapping across the headers region and the section table, with an `Ambiguous` flag for overlapping sections and no file offset for virtual-only tails;
+- overlay bounds derived from `SizeOfHeaders` and section raw ends, omitted rather than guessed when a raw range extends beyond the artifact;
+- explicit `ErrInvalid`, `ErrTruncated`, `ErrLimit`, `ErrRead`, `ErrOutOfRange`, and `ErrUnavailable` sentinels.
+
+The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes. Later Phase 3 increments add imports and exports, resources and certificates, and the `ree.payload.pe/1` evidence provider. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions. No CLI or MCP surface calls the PE reader yet.

@@ -121,6 +121,27 @@ Mitigations:
 
 Residual risk: a consumer that ignores coverage and limitations can still read a trimmed table as complete. Content digests prove equality of a declared range, not that the range means what its section name suggests.
 
+### PE parsing
+
+Threat: a crafted DOS header, `e_lfanew`, optional header size, directory count, section count, section offset, or raw size causes excessive allocation, integer overflow, a panic, or a misleading complete-looking table.
+
+Mitigations:
+
+- require the DOS signature, reject an `e_lfanew` below 0x40, and require the PE signature at the declared offset;
+- accept only the PE32 and PE32+ optional header magics and require the fixed header to be fully present before reading fields;
+- compare declared directory and section counts with the supported maximum, the bytes physically present, and the configured limits before allocating;
+- compute loaded counts from the small bounds first, so a declared count near `2^32` cannot overflow `int` on a 32-bit build;
+- clamp a short section table to complete 40-byte entries and report `Truncated` plus a deterministic limitation;
+- keep raw declared counts separate from loaded slice lengths;
+- bound section content with a per-read limit and return `ErrUnavailable` for a range outside the artifact instead of a short slice;
+- reject invalid UTF-8 section names rather than normalizing them, and aggregate name failures into one limitation;
+- map RVAs deterministically with a first-match rule and an `Ambiguous` flag, and mark virtual-only tails as not file-backed;
+- omit the overlay with a limitation when any section raw range or `SizeOfHeaders` extends beyond the artifact, instead of guessing the boundary;
+- fuzz the parser and compare ordinary header, directory, section, and content decoding against `debug/pe` in tests only;
+- never execute, map, decompress, or write artifact content.
+
+Residual risk: the PE reader is not a sandbox. It bounds its own allocations and reads, but a later consumer that trusts a declared RVA, directory address, or section raw range without checking it can still misbehave. Overlapping sections and inconsistent virtual and raw sizes are preserved as observed values, not repaired.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.
