@@ -4,6 +4,7 @@ package version
 import (
 	"runtime"
 	"runtime/debug"
+	"strings"
 )
 
 const (
@@ -35,10 +36,21 @@ type Info struct {
 
 // Get returns the current build identity.
 func Get() Info {
-	v, c, b := Version, Commit, Built
-	if bi, ok := debug.ReadBuildInfo(); ok {
+	bi, _ := debug.ReadBuildInfo()
+	return resolveIdentity(Version, Commit, Built, bi, runtime.GOOS, runtime.GOARCH, runtime.Version())
+}
+
+// resolveIdentity merges linker-injected values with Go module build metadata.
+// It is separate from Get so every fallback can be tested deterministically.
+//
+// Linker-injected values take precedence. A module version replaces the "dev"
+// default, with the leading "v" removed so release archives and module builds
+// report the same version form. Module builds do not carry VCS metadata, so
+// Commit and Built stay "unknown" unless the linker set them.
+func resolveIdentity(v, c, b string, bi *debug.BuildInfo, goos, goarch, goVersion string) Info {
+	if bi != nil {
 		if v == "dev" && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
-			v = bi.Main.Version
+			v = strings.TrimPrefix(bi.Main.Version, "v")
 		}
 		for _, s := range bi.Settings {
 			switch s.Key {
@@ -61,8 +73,8 @@ func Get() Info {
 		Version:   v,
 		Commit:    c,
 		Built:     b,
-		GoVersion: runtime.Version(),
-		OS:        runtime.GOOS,
-		Arch:      runtime.GOARCH,
+		GoVersion: goVersion,
+		OS:        goos,
+		Arch:      goarch,
 	}
 }
