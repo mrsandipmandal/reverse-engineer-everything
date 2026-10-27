@@ -30,14 +30,22 @@ The SDK is transitioning from MIT to Apache-2.0. Both licenses are permissive an
 
 See [ADR 0002](adr/0002-mcp-sdk.md).
 
+## Phase 1
+
+| Module | Version | License | Purpose |
+|---|---|---|---|
+| `github.com/gowebpki/jcs` | `v1.0.2` | Apache-2.0 | RFC 8785 JSON canonicalization for evidence and bundles |
+
+The module is an actively maintained cleanup of the reference Go implementation, produced with the original author's permission. It rejects duplicate member names and invalid UTF-8, validates surrogate pairs, sorts by UTF-16 code units, and caps nesting. REE wraps it with stricter byte and depth limits. See [ADR 0003](adr/0003-evidence-core.md).
+
+Phase 1 validates the fixed evidence schema in Go instead of adding a JSON Schema validator. A validator will be considered when external schemas must be validated.
+
 ## Planned, subject to verification
 
 These are candidates, not commitments. Each must pass the policy above before adoption.
 
 | Area | Candidate | Phase |
 |---|---|---|
-| JSON Schema | `santhosh-tekuri/jsonschema/v6` | 1 |
-| Canonical JSON | `cyberphone/json-canonicalization` | 1 |
 | Browser automation | `chromedp` | 8 |
 | SQLite | `modernc.org/sqlite` | 6 |
 | WebAssembly | `wazero` | 8 |

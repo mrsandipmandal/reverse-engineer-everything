@@ -108,3 +108,13 @@ Phase 0b adds the first public protocol surface and release automation:
 - Dependabot and SHA-pinned release actions.
 
 The doctor reads tool metadata through fixed argv probes with timeouts and output caps. It does not accept artifact paths, parse artifacts, or execute analysis engines. No artifact parsing or analysis tool is exposed in this phase.
+
+## Phase 1
+
+Phase 1 adds the evidence core as pure library packages:
+
+- `internal/contracts/canonical` implements RFC 8785 canonical JSON with byte, depth, and I-JSON validation, plus SHA-256 digests;
+- `internal/contracts/evidence` defines schema `ree.evidence/1`, strict encode/decode, and digest verification;
+- `internal/contracts/bundle` defines the deterministic `ree.bundle/1` document with export and in-memory import.
+
+No CLI or MCP surface consumes these packages yet. That arrives with the Phase 6 analysis surface, after providers exist. See [ADR 0003](adr/0003-evidence-core.md).

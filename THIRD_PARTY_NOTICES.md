@@ -19,6 +19,16 @@ The SDK is transitioning from the MIT License to the Apache License, Version
 relicensed remain under the MIT License. SDK documentation contributions are
 CC-BY-4.0; REE does not redistribute that documentation.
 
+### JSON Canonicalization (jcs)
+
+- Module: `github.com/gowebpki/jcs`
+- Version: `v1.0.2`
+- Source: <https://github.com/gowebpki/jcs>
+- License: Apache-2.0
+- Copyright: 2021-2026 Bret Jordan & Benedikt Thoma; 2006-2019 WebPKI.org
+
+The Apache-2.0 license text is in [LICENSE](LICENSE).
+
 ### JSON Schema Go
 
 - Module: `github.com/google/jsonschema-go`
