@@ -160,6 +160,23 @@ Mitigations:
 
 Residual risk: import and export decoding is intentionally lenient about a declared directory size because real artifacts often declare a size that does not cover the terminated array; the zero descriptor, containment, and count limits are the real bounds. Evidence must carry per-entry availability and the limitation list, because a consumer that reads only names cannot tell an undecodable name from one the artifact does not have. Forwarder strings are stored targets, not verified resolutions.
 
+### PE resources and certificates
+
+Threat: a crafted resource tree points at itself, fans out without bound, declares names longer than the directory that holds them, or names data outside the file; a crafted certificate table declares overlapping, short, or endless records, or a consumer mistakes a parsed record for a valid signature.
+
+Mitigations:
+
+- resolve the resource base once to a contiguous file-backed range and require every child, entry, string, and data structure to fit the declared directory size before reading it;
+- walk iteratively with a hard depth limit of 8 and one shared 4,096-entry budget, so a cycle terminates with a limitation instead of exhausting the stack or time;
+- stop the walk when the remaining entry budget cannot cover a directory's declared list, rather than presenting a prefix as a complete sibling set;
+- bound each resource name at 4 KiB and all names at 16 MiB per call, reject unpaired UTF-16 surrogates instead of replacing them, and aggregate name failures into limitations;
+- report leaf data as declared, mark `DataAvailable` only when the range is file-backed, and never read resource bytes during the walk;
+- treat the security directory as a file offset, cap the table at 8 MiB and the record count at 256, reject a record shorter than its header or longer than the table, and require eight-byte record alignment;
+- ignore all-zero trailing padding and report non-zero trailing bytes as an incomplete table;
+- return certificate blobs only through an explicit accessor and make no signature, chain, or trust claim in this package.
+
+Residual risk: a consumer that reads `Revision` and `Type` as proof of signing would overstate the evidence; the table only describes records that are present. Resource data and certificate blobs are returned as stored bytes and are not parsed or validated here. Depth and entry limits are counters, not a proof that a tree is meaningful.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.

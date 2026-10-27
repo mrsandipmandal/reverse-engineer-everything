@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"unicode/utf8"
 )
 
@@ -53,6 +54,23 @@ func (f *File) readRVA(rva uint32, length int) ([]byte, error) {
 			ErrUnavailable, length, rva, maximum)
 	}
 	buf := make([]byte, length)
+	if err := readAt(f.reader, int64(offset), buf, f.size); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// readFileRange returns length bytes at a file offset. The range must be fully
+// present in the artifact and is not constrained to a section.
+func (f *File) readFileRange(offset, length uint64) ([]byte, error) {
+	if offset > uint64(f.size) || length > uint64(f.size)-offset {
+		return nil, fmt.Errorf("%w: %d bytes at offset %d are outside the artifact",
+			ErrUnavailable, length, offset)
+	}
+	if length > math.MaxInt32 {
+		return nil, fmt.Errorf("%w: read of %d bytes at offset %d", ErrLimit, length, offset)
+	}
+	buf := make([]byte, int(length))
 	if err := readAt(f.reader, int64(offset), buf, f.size); err != nil {
 		return nil, err
 	}

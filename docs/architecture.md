@@ -164,4 +164,10 @@ The imports and exports increment adds on-demand directory decoders:
 - both share a containment helper that resolves one RVA to a contiguous file-backed range inside the headers region or one section, so a structure cannot be assembled across sections;
 - import and export name work is bounded by a per-string limit and by a separate per-call string budget, with distinct `ErrNotFound`, `ErrUnavailable`, `ErrInvalid`, and `ErrLimit` results for the directory, containment, and limit cases.
 
-The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes, and forwarders are reported as stored strings rather than followed. Later Phase 3 increments add resources and certificates, and the `ree.payload.pe/1` evidence provider. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions and [ADR 0009](adr/0009-pe-imports-exports.md) for the import and export decisions. No CLI or MCP surface calls the PE reader yet.
+The resources and certificates increment adds the two remaining directories:
+
+- `File.Resources` walks the self-relative resource tree iteratively in depth-first on-disk order, with named and integer identifiers, strict UTF-16 names, a shared entry budget, a depth limit, and leaf data ranges reported as declared and checked for file backing without reading the bytes;
+- `File.Certificates` decodes the security directory, which stores a file offset rather than an RVA, and returns the `WIN_CERTIFICATE` headers with their record bounds, eight-byte alignment, count limit, and trailing padding handling;
+- `File.CertificateData` returns one certificate blob as stored; nothing is parsed as PKCS#7, chained, or trusted.
+
+The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes, forwarders are reported as stored strings rather than followed, and certificate records make no signature or trust claim. The `ree.payload.pe/1` evidence provider is the remaining Phase 3 increment. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions, [ADR 0009](adr/0009-pe-imports-exports.md) for the import and export decisions, and [ADR 0010](adr/0010-pe-resources-certificates.md) for the resource and certificate decisions. No CLI or MCP surface calls the PE reader yet.
