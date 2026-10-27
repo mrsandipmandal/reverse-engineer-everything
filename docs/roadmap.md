@@ -113,11 +113,32 @@ Acceptance criteria:
 
 ## Phase 2: ELF
 
+Status: complete. Implemented in PRs #16, #17, #18, and #19 with ADR 0004 to
+ADR 0007.
+
 Scope:
 
 - Read-only ELF32/ELF64 reader.
 - Sections, segments, symbols, relocations, notes, and build metadata.
 - Bounds and malformed-input handling.
+- A `ree.payload.elf/1` evidence adapter.
+
+Acceptance criteria:
+
+- ELF32 and ELF64, little- and big-endian, with validated identifiers, file headers, and extended numbering.
+- Bounded section and program header tables with explicit truncation and limitation reporting.
+- Bounded section names, section and segment contents, notes, GNU build-id, and `.comment` entries.
+- Bounded symbol and relocation decoding with per-table provenance, extended section indexes, and explicit versus stored addends.
+- A deterministic `ree.payload.elf/1` projection into `ree.evidence/1` with content digests, payload and hashing budgets, and explicit coverage, limitations, and unknowns.
+- Crafted fixtures, malformed-input and limit tests, differential symbol checks against `debug/elf` in tests only, and fuzz targets.
+- No execution, decompression, mapping, or writing of artifact content, and no production dependency on `debug/elf`.
+
+Out of scope for this phase:
+
+- PE, Mach-O, archives, APK, ASAR, and plist readers;
+- DWARF, decompilation, and disassembly;
+- symbol versioning, dynamic entries, implicit relocation addends, and compressed section decoding;
+- CLI and MCP surfaces, runtime analysis, and a release tag.
 
 ## Phase 3: PE
 
