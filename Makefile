@@ -7,7 +7,7 @@ GOLANGCI_LINT_VERSION ?= v2.15.0
 GOVULNCHECK_VERSION ?= v1.1.4
 ACTIONLINT_VERSION ?= v1.7.12
 
-.PHONY: all tools fmt fmt-check vet test race build cross-build lint vuln actionlint check clean
+.PHONY: all tools fmt fmt-check vet test race build cross-build lint vuln actionlint check verify-release clean
 
 all: build
 
@@ -52,6 +52,10 @@ vuln:
 
 actionlint:
 	$(GOBIN)/actionlint
+
+verify-release:
+	@test -n "$(TAG)" || { echo "usage: make verify-release TAG=v0.0.1"; exit 2; }
+	./scripts/verify-release.sh "$(TAG)"
 
 check: fmt-check vet test race lint vuln actionlint
 

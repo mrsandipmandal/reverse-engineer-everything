@@ -20,7 +20,9 @@ Reverse engineering tools often produce confident answers without showing what w
 
 ## Install
 
-Requires Go 1.26.10 or newer.
+Download a signed archive for linux, darwin, or windows on amd64 or arm64 from [Releases](https://github.com/mrsandipmandal/reverse-engineer-everything/releases), then verify it as described in [docs/release.md](docs/release.md).
+
+Or build from source with Go 1.26.10 or newer:
 
 ```bash
 go install github.com/mrsandipmandal/reverse-engineer-everything/cmd/ree@latest

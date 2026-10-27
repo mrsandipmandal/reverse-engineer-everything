@@ -80,3 +80,17 @@ release:
   draft: false
   prerelease: auto
   name_template: "REE {{ .Version }}"
+  header: |
+    First public release of REE: evidence-first reverse engineering for binaries, apps, and artifacts.
+
+    This release ships the `ree` CLI, the stdio MCP server (`ree mcp`, surface 0.1) with `ree_version` and `ree_doctor`, and signed archives for linux, darwin, and windows on amd64 and arm64.
+
+    The full changelog is in [CHANGELOG.md](https://github.com/mrsandipmandal/reverse-engineer-everything/blob/{{ .Tag }}/CHANGELOG.md).
+  footer: |
+    **Verify this release**
+
+    ```bash
+    ./scripts/verify-release.sh {{ .Tag }}
+    ```
+
+    Checksums and a keyless cosign bundle are attached. SBOMs are published next to each archive.

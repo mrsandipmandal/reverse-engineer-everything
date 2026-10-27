@@ -36,6 +36,8 @@ make check
 
 If the optional tools are not installed, run the checks that are available and report exactly what was not run.
 
+Release preparation, tagging, verification, and rollback are documented in [docs/release.md](docs/release.md).
+
 ## Pull requests
 
 1. Open or reference an issue with acceptance criteria.

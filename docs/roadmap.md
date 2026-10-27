@@ -71,6 +71,29 @@ Scope:
 - Repository hardening, branch protection verification, and release notes.
 - Post-release verification of downloaded artifacts.
 
+Acceptance criteria:
+
+- `main` is protected by required CI checks, linear history, no force pushes or deletions, and enforcement for admins; merged branches are deleted automatically.
+- `CHANGELOG.md` records `0.0.1` with its release date before tagging, and `ROADMAP.md` marks Phase 0b complete.
+- An annotated `v0.0.1` tag exists on `main` and the release workflow succeeds from that tag.
+- The GitHub release `v0.0.1` is published, not a draft, and links the changelog.
+- The release publishes archives for linux, darwin, and windows on amd64 and arm64, plus `checksums.txt`, `checksums.txt.sigstore.json`, and one SBOM per archive.
+- Every archive contains `ree` or `ree.exe`, `LICENSE`, `NOTICE`, `README.md`, and `THIRD_PARTY_NOTICES.md`.
+- `checksums.txt` verifies for every downloaded archive and SBOM.
+- The cosign bundle verifies against the release workflow identity for the tag and the GitHub Actions OIDC issuer.
+- The downloaded `linux/amd64` binary reports version `0.0.1`, the tag commit, `linux`, and `amd64` from `ree version --json`.
+- `ree mcp` from the downloaded binary initializes at protocol version `2025-11-25`, reports server name `ree`, version `0.0.1`, and surface instructions containing `0.1`, and lists exactly `ree_version` and `ree_doctor`.
+- `scripts/verify-release.sh v0.0.1` performs these checks and exits 0.
+- Post-release results are recorded in `docs/releases/v0.0.1.md`.
+- `docs/release.md` documents tagging, verification, and rollback.
+- No analysis features are added in this phase.
+
+Out of scope for this phase:
+
+- package-manager distribution and installers;
+- a documentation site;
+- any Phase 1 evidence work.
+
 ## Phase 1: evidence core
 
 Scope:
