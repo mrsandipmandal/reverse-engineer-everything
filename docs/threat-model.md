@@ -116,9 +116,13 @@ Threat: modified bundles or findings.
 Mitigations:
 
 - content-addressed subjects;
-- canonical payload digests;
-- schema validation on import;
-- deterministic encoding;
+- canonical payload and record digests;
+- a bundle digest that binds the schema, record set, and record order;
+- canonical-only import that rejects rather than repairs bytes;
+- duplicate and out-of-order record rejection;
+- strict schema validation with exact member names on import;
+- in-memory import with no extraction or execution;
+- bundle, record, payload, string, count, and depth limits;
 - no host-specific data in hashed content.
 
 ### Supply chain
