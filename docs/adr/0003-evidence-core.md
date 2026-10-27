@@ -65,8 +65,9 @@ Rationale:
 
 - A bundle is one canonical JSON document. Phase 1 does not compress or archive it.
 - Records are sorted by the SHA-256 digest of their canonical bytes; duplicate record digests are rejected.
-- The bundle digest covers the canonical bundle with `integrity` omitted.
+- The bundle digest covers the canonical bundle with `integrity` omitted, so it binds the schema, the record set, and the record order.
 - Import accepts canonical bytes only. Non-canonical input is rejected rather than repaired, so import cannot silently change what was hashed.
+- Member names are matched case-sensitively at every level.
 - Import is in-memory: no extraction, no filesystem writes, no network, and no execution.
 - No timestamps, host paths, generator versions, or map iteration order appear in hashed content.
 
@@ -85,7 +86,7 @@ Rationale:
 
 The canonicalizer enforces input bytes and depth. Evidence and bundle validation enforce the remaining limits.
 
-The record limit is 8 MiB while a payload is capped at 4 MiB, because a record also carries subject, provider, coverage, and limitation text. Payload nesting is limited to 128; the record envelope adds one level, so record canonicalization allows 129 levels and payload validation still rejects anything deeper than 128.
+The record limit is 8 MiB while a payload is capped at 4 MiB, because a record also carries subject, provider, coverage, and limitation text. Payload nesting is limited to 128; the record envelope adds one level, so record canonicalization allows 129 levels and payload validation still rejects anything deeper than 128. Bundle canonicalization allows 131 levels: the bundle object, the records array, and the record object add three levels around a payload.
 
 ### Package boundaries
 
