@@ -97,6 +97,25 @@ func SHA256(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// ValidSHA256Hex reports whether s is exactly 64 lowercase hexadecimal
+// characters, the only digest form accepted by the evidence and bundle
+// schemas.
+func ValidSHA256Hex(s string) bool {
+	if len(s) != sha256.Size*2 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'f':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // checkDepth rejects excessive nesting before the canonicalizer builds a
 // parse tree. Braces and brackets inside strings are ignored. Malformed
 // structure is left for the canonicalizer to reject.

@@ -197,6 +197,35 @@ func TestSHA256(t *testing.T) {
 	}
 }
 
+func TestValidSHA256Hex(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		digest string
+		want   bool
+	}{
+		{name: "lowercase", digest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", want: true},
+		{name: "all letters", digest: strings.Repeat("a", 64), want: true},
+		{name: "uppercase", digest: strings.Repeat("A", 64), want: false},
+		{name: "mixed case", digest: "0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef", want: false},
+		{name: "too short", digest: strings.Repeat("a", 63), want: false},
+		{name: "too long", digest: strings.Repeat("a", 65), want: false},
+		{name: "not hexadecimal", digest: strings.Repeat("g", 64), want: false},
+		{name: "empty", digest: "", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := ValidSHA256Hex(tt.digest); got != tt.want {
+				t.Fatalf("ValidSHA256Hex(%q) = %v, want %v", tt.digest, got, tt.want)
+			}
+		})
+	}
+}
+
 func FuzzBytes(f *testing.F) {
 	seeds := [][]byte{
 		[]byte(`{}`),
