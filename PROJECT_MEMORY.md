@@ -1,6 +1,6 @@
 # Project memory
 
-Last updated: 2026-10-27 · `main@86a7bbf` · latest release `v0.0.2`
+Last updated: 2026-10-27 · Phase 2 closeout `049b78f`, code verified at `86a7bbf` · latest release `v0.0.2`
 
 This file is a short, verified snapshot for continuity. The roadmap, changelog, ADRs, and release records remain authoritative for their own content.
 
