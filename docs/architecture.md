@@ -117,4 +117,4 @@ Phase 1 adds the evidence core as pure library packages:
 - `internal/contracts/evidence` defines schema `ree.evidence/1`, strict encode/decode, and digest verification;
 - `internal/contracts/bundle` defines the deterministic `ree.bundle/1` document with export and in-memory import.
 
-No CLI or MCP surface consumes these packages yet. That arrives with the Phase 6 analysis surface, after providers exist. See [ADR 0003](adr/0003-evidence-core.md).
+No CLI or MCP surface consumes these packages yet. That arrives with the Phase 6 analysis surface, after providers exist. See [ADR 0003](adr/0003-evidence-core.md) for decisions and limits, and [evidence.md](evidence.md) for the wire format.

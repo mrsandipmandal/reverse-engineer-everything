@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - RFC 8785 canonical JSON package with byte and depth limits, SHA-256 digests, conformance tests, and a fuzz target.
+- `ree.evidence/1` schema with strict canonical-only decoding, payload integrity digests, explicit coverage and unknowns, size and count limits, golden tests, and a fuzz target.
 
 ## [0.0.2] - 2026-10-27
 

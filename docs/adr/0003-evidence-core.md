@@ -51,7 +51,7 @@ Rationale:
 - `coverage` is `complete`, `partial`, or `unknown`.
 - `limitations` and `unknowns` are sorted lexicographically on encode so producer ordering cannot change the bytes.
 - `payload` is any JSON value; `integrity.digest` covers its canonical bytes.
-- Validation is hand-written and strict: required fields, enum values, digest shape, byte and count limits, and rejection of unknown members. A normative JSON Schema document is documentation; Phase 1 does not add a schema-validator dependency.
+- Validation is hand-written and strict: required fields, enum values, digest shape, byte and count limits, and rejection of unknown members. Member names are matched case-sensitively so a record cannot decode under one spelling and re-encode under another. A normative JSON Schema document is documentation; Phase 1 does not add a schema-validator dependency.
 
 ### Bundle `ree.bundle/1`
 
@@ -76,7 +76,7 @@ Rationale:
 |---|---:|
 | bundle bytes | 64 MiB |
 | records per bundle | 10,000 |
-| evidence record bytes | 4 MiB |
+| evidence record bytes | 8 MiB |
 | payload bytes | 4 MiB |
 | nesting depth | 128 |
 | single string bytes | 1 MiB |
@@ -84,6 +84,8 @@ Rationale:
 | array elements | 100,000 |
 
 The canonicalizer enforces input bytes and depth. Evidence and bundle validation enforce the remaining limits.
+
+The record limit is 8 MiB while a payload is capped at 4 MiB, because a record also carries subject, provider, coverage, and limitation text. Payload nesting is limited to 128; the record envelope adds one level, so record canonicalization allows 129 levels and payload validation still rejects anything deeper than 128.
 
 ### Package boundaries
 
