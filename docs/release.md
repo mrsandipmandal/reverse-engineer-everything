@@ -59,6 +59,14 @@ For each release GoReleaser publishes:
 
 Every archive contains the `ree` binary (or `ree.exe`), `LICENSE`, `NOTICE`, `README.md`, and `THIRD_PARTY_NOTICES.md`.
 
+## Version identity
+
+Release archives embed the tag without the leading `v`: tag `v0.0.2` reports version `0.0.2`, the short tag commit, and the build time.
+
+Builds installed with `go install ...@v0.0.2` report the same bare version from Go module metadata, but `commit` and `built` are `unknown` because module builds do not carry VCS metadata. This is expected and is not a release defect.
+
+`ree version`, `ree version --json`, and the MCP `ree_version` tool all use the same identity.
+
 ## Post-release verification
 
 Run the verification script against the published tag:

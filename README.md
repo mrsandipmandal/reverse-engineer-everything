@@ -28,6 +28,8 @@ Or build from source with Go 1.26.10 or newer:
 go install github.com/mrsandipmandal/reverse-engineer-everything/cmd/ree@latest
 ```
 
+Module builds report the version from Go module metadata. They do not carry VCS metadata, so `commit` and `built` are `unknown`; release archives report both.
+
 From a checkout:
 
 ```bash

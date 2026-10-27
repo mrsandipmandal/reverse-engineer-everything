@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-10-27
+
+### Fixed
+
+- `ree version` and `ree_version` report the same bare version string for release archives and `go install` builds. Module builds still report `unknown` for commit and build time because they carry no VCS metadata.
+
 ## [0.0.1] - 2026-10-27
 
 ### Added
@@ -22,5 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Tag-driven GoReleaser workflow with archives, checksums, SBOMs, and keyless cosign signing.
 - `scripts/verify-release.sh` for post-release artifact, signature, binary, and MCP verification.
 
-[Unreleased]: https://github.com/mrsandipmandal/reverse-engineer-everything/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/mrsandipmandal/reverse-engineer-everything/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/mrsandipmandal/reverse-engineer-everything/releases/tag/v0.0.2
 [0.0.1]: https://github.com/mrsandipmandal/reverse-engineer-everything/releases/tag/v0.0.1
