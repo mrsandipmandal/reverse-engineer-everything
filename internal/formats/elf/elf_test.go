@@ -93,7 +93,7 @@ func buildFixture(class reeelf.Class, data reeelf.Data) fixture {
 	f.put16(f.sectionNameIndexOffset(), 1)
 
 	f.writeProgram(0, programTypeLoad, 5, 0, virtual, virtual, uint64(len(buf)), uint64(len(buf))+0x1000, 0x1000)
-	f.writeSection(1, 1, sectionTypeStrtab, 0, 0, uint64(stringsStart), uint64(len(sectionNames)), 1)
+	f.writeSection(1, 1, sectionTypeStrtab, 0, 0, uint64(stringsStart), uint64(len(sectionNames)), 0, 0, 1, 0)
 	copy(buf[stringsStart:], sectionNames)
 
 	return f
@@ -167,7 +167,7 @@ func (f *fixture) sectionNameIndexOffset() int {
 	return 50
 }
 
-func (f *fixture) sectionZeroFieldOffset(field int) int {
+func (f *fixture) sectionFieldOffset(index, field int) int {
 	// field is the offset within a 64-bit section header.
 	relative := field
 	if f.class == reeelf.Class32 {
@@ -190,15 +190,15 @@ func (f *fixture) sectionZeroFieldOffset(field int) int {
 			relative = 36
 		}
 	}
-	return f.sectionStart + relative
+	return f.sectionStart + index*f.sectionSize + relative
 }
 
 func (f *fixture) putSectionZeroSize(value uint64) {
 	if f.class == reeelf.Class64 {
-		f.put64(f.sectionZeroFieldOffset(32), value)
+		f.put64(f.sectionFieldOffset(0, 32), value)
 		return
 	}
-	f.put32(f.sectionZeroFieldOffset(32), uint32(value))
+	f.put32(f.sectionFieldOffset(0, 32), uint32(value))
 }
 
 func buildExtendedFixture(class reeelf.Class, data reeelf.Data) fixture {
@@ -206,9 +206,9 @@ func buildExtendedFixture(class reeelf.Class, data reeelf.Data) fixture {
 	f.put16(f.sectionCountOffset(), 0)
 	f.putSectionZeroSize(2)
 	f.put16(f.programCountOffset(), 0xffff)
-	f.put32(f.sectionZeroFieldOffset(44), 1)
+	f.put32(f.sectionFieldOffset(0, 44), 1)
 	f.put16(f.sectionNameIndexOffset(), 0xffff)
-	f.put32(f.sectionZeroFieldOffset(40), 1)
+	f.put32(f.sectionFieldOffset(0, 40), 1)
 	return f
 }
 
@@ -234,7 +234,7 @@ func (f *fixture) writeProgram(index int, typ, flags uint32, offset, virtual, ph
 	f.order.PutUint32(f.data[start+28:start+32], uint32(align))
 }
 
-func (f *fixture) writeSection(index int, name uint32, typ uint32, flags, address, offset, size uint64, addressAlign uint64) {
+func (f *fixture) writeSection(index int, name uint32, typ uint32, flags, address, offset, size uint64, link, info uint32, addressAlign, entrySize uint64) {
 	start := f.sectionStart + index*f.sectionSize
 	f.order.PutUint32(f.data[start:start+4], name)
 	f.order.PutUint32(f.data[start+4:start+8], typ)
@@ -243,20 +243,20 @@ func (f *fixture) writeSection(index int, name uint32, typ uint32, flags, addres
 		f.order.PutUint64(f.data[start+16:start+24], address)
 		f.order.PutUint64(f.data[start+24:start+32], offset)
 		f.order.PutUint64(f.data[start+32:start+40], size)
-		f.order.PutUint32(f.data[start+40:start+44], 0)
-		f.order.PutUint32(f.data[start+44:start+48], 0)
+		f.order.PutUint32(f.data[start+40:start+44], link)
+		f.order.PutUint32(f.data[start+44:start+48], info)
 		f.order.PutUint64(f.data[start+48:start+56], addressAlign)
-		f.order.PutUint64(f.data[start+56:start+64], 0)
+		f.order.PutUint64(f.data[start+56:start+64], entrySize)
 		return
 	}
 	f.order.PutUint32(f.data[start+8:start+12], uint32(flags))
 	f.order.PutUint32(f.data[start+12:start+16], uint32(address))
 	f.order.PutUint32(f.data[start+16:start+20], uint32(offset))
 	f.order.PutUint32(f.data[start+20:start+24], uint32(size))
-	f.order.PutUint32(f.data[start+24:start+28], 0)
-	f.order.PutUint32(f.data[start+28:start+32], 0)
+	f.order.PutUint32(f.data[start+24:start+28], link)
+	f.order.PutUint32(f.data[start+28:start+32], info)
 	f.order.PutUint32(f.data[start+32:start+36], uint32(addressAlign))
-	f.order.PutUint32(f.data[start+36:start+40], 0)
+	f.order.PutUint32(f.data[start+36:start+40], uint32(entrySize))
 }
 
 func parse(t *testing.T, data []byte, size int64, limits reeelf.Limits) (*reeelf.File, error) {
@@ -465,7 +465,7 @@ func TestParseRejectsInvalidHeaders(t *testing.T) {
 			name: "extended section name index outside table",
 			mutate: func(f *fixture) {
 				f.put16(f.sectionNameIndexOffset(), 0xffff)
-				f.put32(f.sectionZeroFieldOffset(40), 5)
+				f.put32(f.sectionFieldOffset(0, 40), 5)
 			},
 		},
 	}
@@ -619,7 +619,7 @@ func TestParseCountLimits(t *testing.T) {
 
 		f := buildFixture(reeelf.Class64, reeelf.DataLittle)
 		f.put16(f.programCountOffset(), 0xffff)
-		f.put32(f.sectionZeroFieldOffset(44), 100)
+		f.put32(f.sectionFieldOffset(0, 44), 100)
 		limits := reeelf.DefaultLimits()
 		limits.ProgramHeaders = 1
 
@@ -679,17 +679,22 @@ func FuzzParse(f *testing.F) {
 	f.Add([]byte{0x7f, 'E', 'L', 'F'})
 
 	limits := reeelf.Limits{
-		ArtifactBytes:    1 << 20,
-		SectionHeaders:   8,
-		ProgramHeaders:   8,
-		SectionDataBytes: 16 << 10,
-		SegmentDataBytes: 16 << 10,
-		StringTableBytes: 16 << 10,
-		NameBytes:        256,
-		Notes:            8,
-		NoteDataBytes:    16 << 10,
-		BuildIDBytes:     64,
-		CommentStrings:   8,
+		ArtifactBytes:      1 << 20,
+		SectionHeaders:     8,
+		ProgramHeaders:     8,
+		SectionDataBytes:   16 << 10,
+		SegmentDataBytes:   16 << 10,
+		StringTableBytes:   16 << 10,
+		NameBytes:          256,
+		Notes:              8,
+		NoteDataBytes:      16 << 10,
+		BuildIDBytes:       64,
+		CommentStrings:     8,
+		SymbolTables:       2,
+		Symbols:            16,
+		SymbolStringBytes:  4 << 10,
+		RelocationSections: 2,
+		Relocations:        16,
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := reeelf.ParseWithLimits(bytes.NewReader(data), int64(len(data)), limits)
@@ -750,5 +755,7 @@ func FuzzParse(f *testing.F) {
 		_, _ = got.Notes()
 		_, _ = got.BuildID()
 		_, _ = got.Comment()
+		_, _ = got.Symbols()
+		_, _ = got.Relocations()
 	})
 }

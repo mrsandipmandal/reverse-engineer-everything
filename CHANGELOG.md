@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ree.bundle/1` deterministic export and in-memory import with record-digest ordering, duplicate and order rejection, a bundle digest, tamper tests, and a fuzz target.
 - Bounded ELF32/ELF64 header and raw table reader with extended numbering, explicit truncation limitations, crafted 32/64-bit little/big-endian fixtures, a fuzz target, and differential tests against `debug/elf`.
 - Bounded ELF section names, section and segment contents, `SHT_NOTE` scanning, GNU build-id extraction, and `.comment` entries with distinct absent, unavailable, malformed, and limit errors.
+- Bounded ELF symbol and relocation decoding with the null symbol, per-table index provenance, UTF-8 name resolution, `SHN_XINDEX` support, explicit or stored addend semantics, and differential symbol checks against `debug/elf`.
 
 ## [0.0.2] - 2026-10-27
 

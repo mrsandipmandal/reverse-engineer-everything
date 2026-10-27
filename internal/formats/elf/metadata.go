@@ -12,7 +12,7 @@ const (
 	sectionTypeNoBits  = 8
 	noteTypeGNUBuildID = 3
 
-	maxNoteLimitations = 64
+	maxLimitations = 64
 )
 
 // SectionName returns the name stored for section index.
@@ -396,13 +396,19 @@ func (f *File) parseNotes(sectionIndex int, data []byte, set *NoteSet) bool {
 
 func (s *NoteSet) addLimitation(reason string) {
 	s.Truncated = true
-	if len(s.Limitations) >= maxNoteLimitations {
+	appendLimitation(&s.Limitations, reason)
+}
+
+// appendLimitation records reason up to the shared limitation cap. The final
+// slot always states that further limitations were omitted.
+func appendLimitation(list *[]string, reason string) {
+	if len(*list) >= maxLimitations {
 		return
 	}
-	if len(s.Limitations) == maxNoteLimitations-1 {
-		reason = "additional note limitations omitted"
+	if len(*list) == maxLimitations-1 {
+		reason = "additional limitations omitted"
 	}
-	s.Limitations = append(s.Limitations, reason)
+	*list = append(*list, reason)
 }
 
 func align4(value uint64) uint64 {
