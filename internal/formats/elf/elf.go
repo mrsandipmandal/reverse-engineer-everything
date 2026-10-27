@@ -3,9 +3,10 @@
 //
 // Parse validates the ELF identifier and file header, resolves extended
 // numbering, and loads the raw section and program header tables behind
-// explicit size, count, and allocation limits. Section contents, symbols,
-// relocations, notes, and build metadata are read by later layers that build
-// on this foundation.
+// explicit size, count, and allocation limits. Section names, section and
+// segment contents, notes, GNU build-id, and .comment entries are read on
+// demand under separate limits. Symbols, relocations, and decompilation are
+// left to later layers.
 //
 // Input is untrusted. Structural defects fail with a sentinel error. A table
 // that is cut short by the artifact end or by a configured limit yields the
@@ -33,6 +34,23 @@ const (
 	MaxSectionHeaders = 16_384
 	// MaxProgramHeaders bounds the number of program headers loaded.
 	MaxProgramHeaders = 16_384
+	// MaxSectionDataBytes bounds one section data read.
+	MaxSectionDataBytes int64 = 64 << 20
+	// MaxSegmentDataBytes bounds one segment data read.
+	MaxSegmentDataBytes int64 = 64 << 20
+	// MaxStringTableBytes bounds a section string table or .comment section
+	// considered for metadata.
+	MaxStringTableBytes int64 = 8 << 20
+	// MaxNameBytes bounds one section or note name.
+	MaxNameBytes = 4 << 10
+	// MaxNotes bounds the notes scanned from all SHT_NOTE sections.
+	MaxNotes = 4_096
+	// MaxNoteDataBytes bounds the total note section bytes read.
+	MaxNoteDataBytes int64 = 4 << 20
+	// MaxBuildIDBytes bounds one GNU build-id descriptor.
+	MaxBuildIDBytes = 4 << 10
+	// MaxCommentStrings bounds the entries returned from .comment sections.
+	MaxCommentStrings = 4_096
 )
 
 // Sentinel errors. Errors returned by this package wrap exactly one of these
@@ -44,10 +62,19 @@ var (
 	// ErrTruncated reports that a structure required to interpret the header
 	// extends beyond the artifact end.
 	ErrTruncated = errors.New("elf: truncated artifact")
-	// ErrLimit reports an artifact larger than the configured byte limit.
+	// ErrLimit reports an artifact larger than the configured byte limit, or
+	// requested content above a configured content limit.
 	ErrLimit = errors.New("elf: limit exceeded")
 	// ErrRead reports a failure or short read from the underlying reader.
 	ErrRead = errors.New("elf: read failed")
+	// ErrOutOfRange reports an index outside the declared table.
+	ErrOutOfRange = errors.New("elf: index out of range")
+	// ErrUnavailable reports content that is not loaded or not present in the
+	// artifact, such as a header beyond a truncated table, SHT_NOBITS data, or
+	// bytes outside the declared artifact size.
+	ErrUnavailable = errors.New("elf: content unavailable")
+	// ErrNotFound reports metadata that the artifact does not contain.
+	ErrNotFound = errors.New("elf: metadata not found")
 )
 
 // Class identifies the ELF word size.
@@ -164,6 +191,10 @@ type ProgramHeader struct {
 }
 
 // File is the parsed header and the raw tables loaded by Parse.
+//
+// Truncated and Limitations describe the section and program header tables
+// only. Content methods read from the original io.ReaderAt on demand and
+// report their own coverage through errors and, for notes, NoteSet.
 type File struct {
 	Header Header
 
@@ -179,7 +210,9 @@ type File struct {
 	// It is empty when both loaded tables match the declared counts.
 	Limitations []string
 
-	size int64
+	reader io.ReaderAt
+	size   int64
+	limits Limits
 }
 
 // Size returns the artifact size supplied to Parse.
@@ -196,14 +229,31 @@ type Limits struct {
 	ArtifactBytes  int64
 	SectionHeaders int
 	ProgramHeaders int
+
+	SectionDataBytes int64
+	SegmentDataBytes int64
+	StringTableBytes int64
+	NameBytes        int
+	Notes            int
+	NoteDataBytes    int64
+	BuildIDBytes     int
+	CommentStrings   int
 }
 
 // DefaultLimits returns the package limits.
 func DefaultLimits() Limits {
 	return Limits{
-		ArtifactBytes:  MaxArtifactBytes,
-		SectionHeaders: MaxSectionHeaders,
-		ProgramHeaders: MaxProgramHeaders,
+		ArtifactBytes:    MaxArtifactBytes,
+		SectionHeaders:   MaxSectionHeaders,
+		ProgramHeaders:   MaxProgramHeaders,
+		SectionDataBytes: MaxSectionDataBytes,
+		SegmentDataBytes: MaxSegmentDataBytes,
+		StringTableBytes: MaxStringTableBytes,
+		NameBytes:        MaxNameBytes,
+		Notes:            MaxNotes,
+		NoteDataBytes:    MaxNoteDataBytes,
+		BuildIDBytes:     MaxBuildIDBytes,
+		CommentStrings:   MaxCommentStrings,
 	}
 }
 
@@ -264,7 +314,7 @@ func ParseWithLimits(r io.ReaderAt, size int64, limits Limits) (*File, error) {
 		class:  class,
 		data:   data,
 		order:  byteOrder(data),
-		file:   &File{size: size},
+		file:   &File{size: size, reader: r, limits: limits},
 	}
 	p.decodeHeader(raw)
 	if err := p.resolve(); err != nil {
@@ -292,6 +342,30 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.ProgramHeaders <= 0 || l.ProgramHeaders > MaxProgramHeaders {
 		l.ProgramHeaders = MaxProgramHeaders
+	}
+	if l.SectionDataBytes <= 0 || l.SectionDataBytes > MaxSectionDataBytes {
+		l.SectionDataBytes = MaxSectionDataBytes
+	}
+	if l.SegmentDataBytes <= 0 || l.SegmentDataBytes > MaxSegmentDataBytes {
+		l.SegmentDataBytes = MaxSegmentDataBytes
+	}
+	if l.StringTableBytes <= 0 || l.StringTableBytes > MaxStringTableBytes {
+		l.StringTableBytes = MaxStringTableBytes
+	}
+	if l.NameBytes <= 0 || l.NameBytes > MaxNameBytes {
+		l.NameBytes = MaxNameBytes
+	}
+	if l.Notes <= 0 || l.Notes > MaxNotes {
+		l.Notes = MaxNotes
+	}
+	if l.NoteDataBytes <= 0 || l.NoteDataBytes > MaxNoteDataBytes {
+		l.NoteDataBytes = MaxNoteDataBytes
+	}
+	if l.BuildIDBytes <= 0 || l.BuildIDBytes > MaxBuildIDBytes {
+		l.BuildIDBytes = MaxBuildIDBytes
+	}
+	if l.CommentStrings <= 0 || l.CommentStrings > MaxCommentStrings {
+		l.CommentStrings = MaxCommentStrings
 	}
 	return l
 }
