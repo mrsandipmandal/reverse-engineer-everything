@@ -203,7 +203,7 @@ Out of scope for this phase:
 
 ## Phase 5: Mach-O
 
-Status: in progress. PR1 lands the reader foundation with ADR 0013, PR2 the metadata decoders with ADR 0014, PR3 the `ree.payload.macho/1` adapter with ADR 0015, and PR4 the `ree analyze` and `ree_analyze` wiring; PR5 records the closeout.
+Status: complete. PR1 added the reader foundation with ADR 0013, PR2 the metadata decoders with ADR 0014, PR3 the `ree.payload.macho/1` adapter with ADR 0015, and PR4 the `ree analyze` and `ree_analyze` wiring; PR5 records the closeout.
 
 Scope:
 
