@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -219,7 +220,10 @@ func (a *Archive) buildEntry(node rawNode, path string) (Entry, error) {
 
 // locate resolves an entry's declared range against the artifact.
 func (a *Archive) locate(entry *Entry) {
-	if entry.Offset > uint64(a.size) {
+	// Both bounds are checked before the conversion: the artifact size is
+	// never negative, and the explicit MaxInt64 comparison keeps the
+	// conversion provably in range.
+	if a.size < 0 || entry.Offset > uint64(a.size) || entry.Offset > math.MaxInt64 {
 		entry.RangeOutside = true
 		entry.Limitations = append(entry.Limitations, "content range is outside the artifact")
 		return
