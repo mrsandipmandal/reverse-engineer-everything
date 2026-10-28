@@ -203,10 +203,31 @@ Out of scope for this phase:
 
 ## Phase 5: Mach-O
 
+Status: in progress. PR1 lands the reader foundation with ADR 0013.
+
 Scope:
 
 - Read-only Mach-O and universal binary reader.
 - Load commands, segments, symbols, dylibs, and code signing metadata.
+- A `ree.payload.macho/1` evidence adapter and its wiring into the analysis surface.
+
+Acceptance criteria:
+
+- Thin 32-bit and 64-bit Mach-O images parse in either byte order, and universal binaries keep every slice with its own bounds and byte order.
+- A structurally impossible header fails with a sentinel error; a physically truncated or count-limited load command or section table returns a partial result with `Truncated` and a deterministic limitation.
+- A slice that cannot be parsed is reported with its own error while the remaining slices still parse; an artifact with no parsable slice fails.
+- Segment and section names decode strictly, and a name that is empty or not valid UTF-8 is reported as unavailable rather than as an empty name.
+- Segment and section ranges are reported as declared, with an aggregated limitation when a range escapes its slice.
+- Dylibs, build metadata, symbols, and code signing blob headers decode under explicit count and byte limits.
+- A deterministic `ree.payload.macho/1` projection into `ree.evidence/1` with content digests, payload and hashing budgets, and explicit coverage, limitations, and unknowns.
+- `ree analyze` and `ree_analyze` select Mach-O by magic or explicitly, with ELF and PE behaviour unchanged.
+- Crafted fixtures, malformed-input and limit tests, and a fuzz target; no execution, mapping, decompression, or writing of artifact content.
+
+Out of scope for this phase:
+
+- exports tries, chained fixups, relocations, Objective-C metadata, entitlements and certificate contents, signature validation, dyld shared caches, and ARM64e pointer authentication;
+- archives, application packages, JavaScript and web artifacts, external engines, and runtime analysis;
+- decompilation, disassembly, a release tag, and any change to the evidence schema.
 
 ## Phase 6: archives, application packages, and inventory
 
