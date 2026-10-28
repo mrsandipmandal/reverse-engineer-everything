@@ -209,3 +209,17 @@ The provider does not execute, map, decompress, or write content and does not de
 
 The analysis surface selects the provider by magic — `0xfeedface`, `0xfeedfacf`, `0xcefaedfe`, `0xcffaedfe`, `0xcafebabe`, `0xcafebabf`, and their byte-swapped forms — or by `--format macho`. Because `0xcafebabe` is also the Java class-file magic, a class file is reported as a Mach-O artifact whose universal header does not parse rather than as an unknown format.
 
+
+## Phase 6
+
+Phase 6 adds archives, application packages, and inventory. The first two
+increments add a read-only container reader and its evidence provider:
+
+- `internal/formats/archive` validates the ZIP end record, central directory, and central-versus-local name match, including ZIP64 and data descriptors; walks ustar, PAX, and GNU tar header chains with signed or unsigned checksums, base-256 numbers, long names, and sparse detection; and parses the first gzip member header with `FHCRC` verification;
+- entry names are decoded as UTF-8 and never repaired; an absolute path, drive letter, backslash separator, NUL byte, or parent-directory segment is inventoried with the raw bytes and its content is never read;
+- entry content is returned in memory on demand under a content limit, with CRC-32 verified only on a full read; nothing is extracted, linked, mapped, or written;
+- `internal/providers/archive` returns one `ree.evidence/1` record per artifact with a `ree.payload.archive/1` payload; the artifact and every entry are projected, and a member that holds another container is described as a nested subtree.
+
+Nested detection reads a 263-byte prefix before it decodes a member, so an ordinary large file is never decompressed. It is bounded by depth (one level by default, two at most), parsed member count, and an aggregate decoded-byte budget shared across levels. A member that cannot be read keeps its status and one record limitation instead of hiding the other members. The payload budget charges the artifact envelope first and then splits what remains between entries and nested containers.
+
+The provider does not execute, link, map, decompress outside a bounded read, or write content. See [ADR 0016](adr/0016-archive-reader.md) and [ADR 0017](adr/0017-archive-evidence-adapter.md) for the decisions, and [payload-archive.md](payload-archive.md) for the wire format. Wiring the provider into the analysis surface, archive inventory commands, and the APK, ASAR, and plist readers is deferred to later Phase 6 increments.
