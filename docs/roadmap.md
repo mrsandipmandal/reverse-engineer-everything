@@ -170,30 +170,61 @@ Out of scope for this phase:
 - Authenticode trust or chain validation, unpacking, execution, mapping, or writing artifact content;
 - CLI and MCP surfaces, runtime analysis, and a release tag.
 
-## Phase 4: Mach-O
+## Phase 4: analysis surface
+
+Status: in progress. Design in [ADR 0012](adr/0012-analysis-surface.md).
+
+Scope:
+
+- `internal/usecase/analyze`: format detection, provider selection, artifact
+  bounds, sealed `ree.evidence/1` evidence, and a path-free summary.
+- `ree analyze` over ELF and PE.
+- The MCP tool `ree_analyze`, with the surface version raised from `0.1` to
+  `0.2`.
+
+Acceptance criteria:
+
+- `ree analyze <path> --json` exits 0 for valid ELF and PE artifacts and emits stable JSON; identical bytes at different paths produce identical output.
+- An unsupported format, an unreadable path, and an oversized artifact exit 1 with a sentinel error; invalid usage exits 2.
+- `--out` writes a canonical record that `evidence.Decode` accepts and whose digest matches, and it refuses to replace an existing file without `--force`.
+- Auto-detection is deterministic: the ELF magic selects ELF and `MZ` selects PE. An explicit `--format` that does not parse returns the provider error instead of falling back to detection.
+- `ree_analyze` returns the same summary for the same input, and returns the sealed record only when `include_record` is true.
+- Artifacts are bounded by 2 GiB or `--max-bytes`, only regular files are analyzed, and no artifact is executed, mapped, unpacked, or written.
+- Neither the record nor the summary contains the artifact path.
+- The MCP surface version is `0.2`; `scripts/verify-release.sh` still verifies `0.1` releases and requires `ree_analyze` for `0.2` and later.
+- Unit and table tests cover the use case, the CLI, and the MCP tool; `go test`, `go test -race`, lint, govulncheck, and actionlint pass; the Windows, macOS, and Linux CI matrix is green.
+
+Out of scope for this phase:
+
+- Mach-O, archives, application packages, JavaScript and web artifacts, external engines, and runtime analysis;
+- bundle export, decompilation, and disassembly;
+- a release tag and any change to the evidence schema.
+
+## Phase 5: Mach-O
 
 Scope:
 
 - Read-only Mach-O and universal binary reader.
 - Load commands, segments, symbols, dylibs, and code signing metadata.
 
-## Phase 5: archives and application packages
+## Phase 6: archives, application packages, and inventory
 
 Scope:
 
 - ZIP, tar, gzip, APK, ASAR, and plist readers.
 - Safe extraction and inventory.
 - Path traversal, symlink, and archive-bomb defenses.
+- Inventory, search, and compare over analyzed content, with paginated views.
 
-## Phase 6: analysis surface
+## Phase 7: JavaScript and web artifacts
 
 Scope:
 
-- Inventory, search, read, compare, and paginated views.
-- Evidence-backed findings.
-- Session and bundle management.
+- Static JavaScript and web bundle analysis.
+- Source-map handling.
+- No page execution without explicit authorization.
 
-## Phase 7: external providers
+## Phase 8: external providers
 
 Scope:
 
@@ -201,14 +232,7 @@ Scope:
 - Ghidra adapter first.
 - Explicit authorization, isolation, timeouts, and output caps.
 - No bundled third-party engines.
-
-## Phase 8: JavaScript and web artifacts
-
-Scope:
-
-- Static JavaScript and web bundle analysis.
-- Source-map handling.
-- No page execution without explicit authorization.
+- Session and bundle management for external runs.
 
 ## Phase 9: runtime analysis
 

@@ -10,11 +10,11 @@ Work is split into small, reviewable phases. Each phase starts with acceptance c
 | 1 | Evidence core, canonical JSON, schema validation | Complete |
 | 2 | ELF read-only provider | Complete |
 | 3 | PE read-only provider | Complete |
-| 4 | Mach-O read-only provider | Planned |
-| 5 | Archives, APK, ASAR, and plist readers | Planned |
-| 6 | Inventory, search, compare, and paginated views | Planned |
-| 7 | External provider protocol and engine adapters | Planned |
-| 8 | JavaScript and web artifact analysis | Planned |
+| 4 | Analysis surface: `ree analyze`, `ree_analyze` | In progress |
+| 5 | Mach-O read-only provider | Planned |
+| 6 | Archives, application packages, and inventory | Planned |
+| 7 | JavaScript and web artifact analysis | Planned |
+| 8 | External provider protocol and engine adapters | Planned |
 | 9 | Runtime analysis with authorization and isolation | Planned |
 
 See [docs/roadmap.md](docs/roadmap.md) for phase details and non-goals.

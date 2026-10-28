@@ -49,7 +49,7 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 
 ## Known issues and limitations
 
-- Phase 1, Phase 2, and Phase 3 packages are not consumed by the CLI or MCP surface yet; that arrives with the Phase 6 analysis surface after providers exist.
+- Phase 1, Phase 2, and Phase 3 packages are not consumed by the CLI or MCP surface yet; that arrives with the Phase 4 analysis surface.
 - The ELF provider does not decode symbol versioning, `SHT_DYNAMIC`, needed libraries, compressed sections, or implicit `SHT_REL` addends; these are recorded as unknowns.
 - ELF evidence tables may be prefixes of the artifact's tables when the payload budget is exhausted; `coverage: partial` and an omission limitation describe the gap.
 - `uint64` ELF fields, relocation addends, PE image bases, and PE file offsets are decimal strings in the payload because JSON numbers lose precision above 2^53.
@@ -63,8 +63,8 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 
 ## Pending work and next action
 
-1. Propose Phase 4 (read-only Mach-O reader and evidence provider) with scope, acceptance criteria, and a verification plan; wait for approval before implementation.
-2. Keep CLI and MCP surfaces unchanged until a provider is wired into a use case.
+1. Phase 4 (analysis surface) is in progress: `internal/usecase/analyze` with ADR 0012, followed by `ree analyze`, `ree_analyze`, and the closeout. Mach-O is Phase 5.
+2. Keep CLI and MCP surfaces limited to the approved Phase 4 scope until it is complete.
 3. Cut a release only with explicit approval and after recording verification evidence.
 
 ## Update rules

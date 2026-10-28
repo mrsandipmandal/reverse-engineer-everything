@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Bounded PE import and export decoding: import descriptors, original-thunk and IAT thunk arrays, named and ordinal thunks, export address, name, and ordinal tables, unnamed exports, forwarder strings, per-string and per-call string budgets, aggregated name limitations, and an imported-symbol differential test against `debug/pe`.
 - Bounded PE resource tree and attribute certificate table decoding: depth-first named and integer identifiers, strict UTF-16 names, shared entry and string budgets, cycle and depth limits, leaf data range checking, `WIN_CERTIFICATE` headers with eight-byte alignment, count and size limits, and an explicit certificate blob accessor that makes no trust claim.
 - `internal/providers/pe`, the second evidence provider: a bounded `ree.payload.pe/1` projection of PE32 and PE32+ headers, optional headers, data directories, section headers with content digests, overlay bounds, imports, exports, resource leaves, and certificate record headers into a sealed `ree.evidence/1` record, with null directory members, payload and hashing budgets, and explicit coverage, limitations, and unknowns.
+- `internal/usecase/analyze`, the analysis use case: bounded magic detection, ELF and PE provider selection, sealed `ree.evidence/1` bytes, and a path-free summary with coverage, limitations, unknowns, and table counts.
 
 ## [0.0.2] - 2026-10-27
 
