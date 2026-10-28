@@ -142,7 +142,8 @@ Out of scope for this phase:
 
 ## Phase 3: PE
 
-Status: in progress.
+Status: complete. Implemented in PRs #22, #23, #24, and #25 with ADR 0008 to
+ADR 0011.
 
 Scope:
 

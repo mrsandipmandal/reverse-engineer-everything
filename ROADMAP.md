@@ -9,7 +9,7 @@ Work is split into small, reviewable phases. Each phase starts with acceptance c
 | 0c | First release, repository hardening | Complete |
 | 1 | Evidence core, canonical JSON, schema validation | Complete |
 | 2 | ELF read-only provider | Complete |
-| 3 | PE read-only provider | In progress |
+| 3 | PE read-only provider | Complete |
 | 4 | Mach-O read-only provider | Planned |
 | 5 | Archives, APK, ASAR, and plist readers | Planned |
 | 6 | Inventory, search, compare, and paginated views | Planned |
