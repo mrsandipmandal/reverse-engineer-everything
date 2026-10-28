@@ -239,4 +239,13 @@ The fourth increment adds Apple property lists:
 - strings are capped and keep their raw bytes, a non-finite real or date keeps a limitation instead of an undefined value, and the XML form is decoded as a token stream so limits apply before a subtree is expanded;
 - `internal/providers/plist` returns one `ree.evidence/1` record per artifact with a `ree.payload.plist/1` payload, decimal-string 64-bit values, and a payload budget over the object table.
 
-See [ADR 0019](adr/0019-plist-reader.md) for the decisions and [payload-plist.md](payload-plist.md) for the wire format. Nested detection inside ASAR entries, wiring the providers into the analysis surface, archive inventory commands, and the APK reader are deferred to later Phase 6 increments.
+See [ADR 0019](adr/0019-plist-reader.md) for the decisions and [payload-plist.md](payload-plist.md) for the wire format.
+
+The fifth increment adds Android packages:
+
+- `internal/formats/apk` reuses the archive reader for the ZIP container, requires a root `AndroidManifest.xml`, and classifies every entry as a manifest, DEX file, resource table, native library, resource, asset, signature file, or other;
+- manifest, DEX, and resource table content is hashed with SHA-256 under per-entry and aggregate byte limits; a skipped or failed digest is a limitation, not a silent empty value;
+- the APK Signing Block is located through the central directory, validated against its own declared size and the directory offset, and inventoried pair by pair with known scheme names and value digests; signature validity is never claimed;
+- `internal/providers/apk` returns one `ree.evidence/1` record per artifact with a `ree.payload.apk/1` payload, decimal-string 64-bit values, entry-kind counts, and a payload budget over the ZIP entries.
+
+Binary `AndroidManifest.xml`, `resources.arsc`, DEX parsing, and signature verification are out of scope. See [ADR 0020](adr/0020-apk-reader.md) for the decisions and [payload-apk.md](payload-apk.md) for the wire format. Nested detection inside ASAR entries, wiring the providers into the analysis surface, and archive inventory commands are deferred to the final Phase 6 increment.

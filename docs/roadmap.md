@@ -238,7 +238,9 @@ evidence provider with bounded nested detection and
 reader and the `ree.payload.asar/1` evidence provider with
 [ADR 0018](adr/0018-asar-reader.md); PR4 adds the bounded property list reader
 and the `ree.payload.plist/1` evidence provider with
-[ADR 0019](adr/0019-plist-reader.md).
+[ADR 0019](adr/0019-plist-reader.md); PR5 adds the bounded APK reader and the
+`ree.payload.apk/1` evidence provider with
+[ADR 0020](adr/0020-apk-reader.md).
 
 Scope:
 
