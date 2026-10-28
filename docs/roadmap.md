@@ -236,7 +236,9 @@ Status: in progress. PR1 adds the bounded ZIP, tar, and gzip reader with
 evidence provider with bounded nested detection and
 [ADR 0017](adr/0017-archive-evidence-adapter.md); PR3 adds the bounded ASAR
 reader and the `ree.payload.asar/1` evidence provider with
-[ADR 0018](adr/0018-asar-reader.md).
+[ADR 0018](adr/0018-asar-reader.md); PR4 adds the bounded property list reader
+and the `ree.payload.plist/1` evidence provider with
+[ADR 0019](adr/0019-plist-reader.md).
 
 Scope:
 

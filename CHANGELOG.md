@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ree.payload.archive/1` evidence provider: one `ree.evidence/1` record per archive with every entry projected, prefix-based nested container detection bounded by depth, member count, and decoded bytes, deterministic payload budgets, and ADR 0017.
 - Bounded Electron ASAR reader: Chromium Pickle header validation, JSON directory decoding under depth, entry, and path limits, deterministic sorted-path inventory, declared-range validation, unpacked and link reporting without content access, a fuzz target, and ADR 0018.
 - `ree.payload.asar/1` evidence provider: one `ree.evidence/1` record per ASAR artifact with the header and every entry projected, decimal-string 64-bit values, payload budgets, and a determinism test.
+- Bounded Apple property list reader: binary `bplist` trailer, offset table, and reference validation, XML token-stream decoding, a flat typed object inventory, reachability and depth limits from the top object, unreachable-object reporting, string and object limits, a fuzz target, and ADR 0019.
+- `ree.payload.plist/1` evidence provider: one `ree.evidence/1` record per property list with the artifact and every object projected, decimal-string 64-bit values, payload budgets, and a determinism test.
 
 ## [0.0.2] - 2026-10-27
 

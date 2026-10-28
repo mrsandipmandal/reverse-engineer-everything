@@ -259,6 +259,9 @@ Mitigations:
 - ASAR file ranges are validated against the artifact, its JSON directory is
   decoded under depth and entry limits, unpacked files are reported without
   content, and links are never followed;
+- property list object counts, offsets, references, strings, and graph depth are
+  bounded; an object outside the object area or a reference past the table is a
+  sentinel error, and a depth or string limit is reported as a limitation;
 - nested parsing depth and aggregate bytes are bounded, so a member cannot fan
   out without limit.
 
