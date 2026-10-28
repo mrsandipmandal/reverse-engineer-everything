@@ -232,7 +232,9 @@ Out of scope for this phase:
 ## Phase 6: archives, application packages, and inventory
 
 Status: in progress. PR1 adds the bounded ZIP, tar, and gzip reader with
-[ADR 0016](adr/0016-archive-reader.md).
+[ADR 0016](adr/0016-archive-reader.md); PR2 adds the `ree.payload.archive/1`
+evidence provider with bounded nested detection and
+[ADR 0017](adr/0017-archive-evidence-adapter.md).
 
 Scope:
 
