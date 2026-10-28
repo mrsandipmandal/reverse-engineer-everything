@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ree.payload.asar/1` evidence provider: one `ree.evidence/1` record per ASAR artifact with the header and every entry projected, decimal-string 64-bit values, payload budgets, and a determinism test.
 - Bounded Apple property list reader: binary `bplist` trailer, offset table, and reference validation, XML token-stream decoding, a flat typed object inventory, reachability and depth limits from the top object, unreachable-object reporting, string and object limits, a fuzz target, and ADR 0019.
 - `ree.payload.plist/1` evidence provider: one `ree.evidence/1` record per property list with the artifact and every object projected, decimal-string 64-bit values, payload budgets, and a determinism test.
+- Bounded APK reader: ZIP container and root-manifest identification, structural classification of manifests, DEX files, the resource table, native libraries, resources, assets, and signature files, SHA-256 digests for manifest, DEX, and resource content under per-entry and aggregate limits, APK Signing Block validation with scheme names and pair digests, a fuzz target, and ADR 0020.
+- `ree.payload.apk/1` evidence provider: one `ree.evidence/1` record per APK with the artifact, kind counts, signing block, and every entry projected, decimal-string 64-bit values, payload budgets, and a determinism test.
 
 ## [0.0.2] - 2026-10-27
 
