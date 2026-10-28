@@ -203,7 +203,7 @@ Out of scope for this phase:
 
 ## Phase 5: Mach-O
 
-Status: in progress. PR1 lands the reader foundation with ADR 0013 and PR2 the metadata decoders with ADR 0014.
+Status: in progress. PR1 lands the reader foundation with ADR 0013, PR2 the metadata decoders with ADR 0014, and PR3 the `ree.payload.macho/1` adapter with ADR 0015.
 
 Scope:
 
