@@ -230,4 +230,13 @@ The third increment adds Electron ASAR:
 - `size` and `offset` are accepted as JSON numbers or decimal strings, and every declared file range is checked against the artifact; an unpacked file is reported without content, and a link is never followed;
 - `internal/providers/asar` returns one `ree.evidence/1` record per artifact with a `ree.payload.asar/1` payload, decimal-string 64-bit values, and a payload budget over the sorted entries.
 
-See [ADR 0018](adr/0018-asar-reader.md) for the decisions and [payload-asar.md](payload-asar.md) for the wire format. Nested detection inside ASAR entries, wiring the providers into the analysis surface, archive inventory commands, and the APK and plist readers are deferred to later Phase 6 increments.
+See [ADR 0018](adr/0018-asar-reader.md) for the decisions and [payload-asar.md](payload-asar.md) for the wire format.
+
+The fourth increment adds Apple property lists:
+
+- `internal/formats/plist` detects the binary `bplist` and XML representations, validates the binary trailer, offset table, and every object reference, and inventories both forms as one flat table of typed objects;
+- depth is the distance from the top object in the reference graph: a breadth-first walk marks reachability, a depth limit drops child references and marks the plist truncated, and objects off the root path are inventoried with a limitation instead of being dropped;
+- strings are capped and keep their raw bytes, a non-finite real or date keeps a limitation instead of an undefined value, and the XML form is decoded as a token stream so limits apply before a subtree is expanded;
+- `internal/providers/plist` returns one `ree.evidence/1` record per artifact with a `ree.payload.plist/1` payload, decimal-string 64-bit values, and a payload budget over the object table.
+
+See [ADR 0019](adr/0019-plist-reader.md) for the decisions and [payload-plist.md](payload-plist.md) for the wire format. Nested detection inside ASAR entries, wiring the providers into the analysis surface, archive inventory commands, and the APK reader are deferred to later Phase 6 increments.
