@@ -10,7 +10,7 @@ Work is split into small, reviewable phases. Each phase starts with acceptance c
 | 1 | Evidence core, canonical JSON, schema validation | Complete |
 | 2 | ELF read-only provider | Complete |
 | 3 | PE read-only provider | Complete |
-| 4 | Analysis surface: `ree analyze`, `ree_analyze` | In progress |
+| 4 | Analysis surface: `ree analyze`, `ree_analyze` | Complete |
 | 5 | Mach-O read-only provider | Planned |
 | 6 | Archives, application packages, and inventory | Planned |
 | 7 | JavaScript and web artifact analysis | Planned |

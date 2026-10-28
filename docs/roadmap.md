@@ -172,7 +172,8 @@ Out of scope for this phase:
 
 ## Phase 4: analysis surface
 
-Status: in progress. Design in [ADR 0012](adr/0012-analysis-surface.md).
+Status: complete. Implemented in PRs #27, #28, and #29 with
+[ADR 0012](adr/0012-analysis-surface.md).
 
 Scope:
 
