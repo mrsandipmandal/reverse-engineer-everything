@@ -256,8 +256,11 @@ Mitigations:
   entry content reads are bounded by explicit limits;
 - a decompressed size or CRC-32 that disagrees with the declared value is a
   sentinel error rather than accepted output;
-- nested parsing depth and aggregate bytes will be bounded, so a member cannot
-  fan out without limit.
+- ASAR file ranges are validated against the artifact, its JSON directory is
+  decoded under depth and entry limits, unpacked files are reported without
+  content, and links are never followed;
+- nested parsing depth and aggregate bytes are bounded, so a member cannot fan
+  out without limit.
 
 ### Command injection
 
