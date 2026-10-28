@@ -265,7 +265,7 @@ func TestRunHelpListsCommands(t *testing.T) {
 	if code != ExitOK {
 		t.Fatalf("Run() = %d, want %d", code, ExitOK)
 	}
-	for _, want := range []string{"doctor", "mcp", "version"} {
+	for _, want := range []string{"analyze", "doctor", "mcp", "version"} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Fatalf("stdout = %q, want %q", stdout.String(), want)
 		}

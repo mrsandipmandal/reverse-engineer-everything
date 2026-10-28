@@ -6,7 +6,7 @@
 
 **Evidence-first reverse engineering for binaries, apps, and artifacts.**
 
-> Status: pre-alpha. The current foundation exposes build identity, local diagnostics, and an MCP diagnostic surface. Analysis features are being built in reviewable phases.
+> Status: pre-alpha. `ree analyze` reads ELF and PE artifacts into sealed evidence with a path-free summary. The MCP surface still exposes build identity and local diagnostics only.
 
 ## Why
 
@@ -42,11 +42,15 @@ go build -o bin/ree ./cmd/ree
 ```bash
 ree version
 ree version --json
+ree analyze ./artifact
+ree analyze ./artifact --json
 ree doctor
 ree doctor --json
 ree mcp
 ree help
 ```
+
+`ree analyze` reads one local ELF or PE artifact, selects the built-in provider by magic, and prints a path-free summary or emits the sealed `ree.evidence/1` record with `--out`. It is read-only and never executes artifact content. See [docs/analyze.md](docs/analyze.md).
 
 `ree doctor` reports whether the local tools used for development and releases are available. Missing optional tools do not fail the command; the JSON form is intended for automation.
 

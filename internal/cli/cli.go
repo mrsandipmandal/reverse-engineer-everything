@@ -29,6 +29,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 
 	switch args[0] {
+	case "analyze":
+		return runAnalyze(ctx, args[1:], stdout, stderr)
 	case "version":
 		return runVersion(ctx, args[1:], stdout, stderr)
 	case "doctor":
@@ -50,10 +52,11 @@ func printUsage(w io.Writer) {
 Usage: ree <command> [options]
 
 Commands:
+  analyze   Analyze one local artifact and emit evidence
   version   Print version information
   doctor    Check local tools and environment
   mcp       Run the MCP server over stdio
   help      Show this help
 
-Run "ree version --json" or "ree doctor --json" for machine-readable output.`)
+Run "ree analyze --json", "ree version --json", or "ree doctor --json" for machine-readable output.`)
 }
