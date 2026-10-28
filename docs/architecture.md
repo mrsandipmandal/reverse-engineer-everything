@@ -222,4 +222,12 @@ increments add a read-only container reader and its evidence provider:
 
 Nested detection reads a 263-byte prefix before it decodes a member, so an ordinary large file is never decompressed. It is bounded by depth (one level by default, two at most), parsed member count, and an aggregate decoded-byte budget shared across levels. A member that cannot be read keeps its status and one record limitation instead of hiding the other members. The payload budget charges the artifact envelope first and then splits what remains between entries and nested containers.
 
-The provider does not execute, link, map, decompress outside a bounded read, or write content. See [ADR 0016](adr/0016-archive-reader.md) and [ADR 0017](adr/0017-archive-evidence-adapter.md) for the decisions, and [payload-archive.md](payload-archive.md) for the wire format. Wiring the provider into the analysis surface, archive inventory commands, and the APK, ASAR, and plist readers is deferred to later Phase 6 increments.
+The archive provider does not execute, link, map, decompress outside a bounded read, or write content. See [ADR 0016](adr/0016-archive-reader.md) and [ADR 0017](adr/0017-archive-evidence-adapter.md) for the decisions, and [payload-archive.md](payload-archive.md) for the wire format.
+
+The third increment adds Electron ASAR:
+
+- `internal/formats/asar` validates the Chromium Pickle header sizes, decodes the JSON directory under a depth and entry limit, and inventories directories, files, and links in deterministic sorted path order;
+- `size` and `offset` are accepted as JSON numbers or decimal strings, and every declared file range is checked against the artifact; an unpacked file is reported without content, and a link is never followed;
+- `internal/providers/asar` returns one `ree.evidence/1` record per artifact with a `ree.payload.asar/1` payload, decimal-string 64-bit values, and a payload budget over the sorted entries.
+
+See [ADR 0018](adr/0018-asar-reader.md) for the decisions and [payload-asar.md](payload-asar.md) for the wire format. Nested detection inside ASAR entries, wiring the providers into the analysis surface, archive inventory commands, and the APK and plist readers are deferred to later Phase 6 increments.
