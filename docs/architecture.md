@@ -170,4 +170,14 @@ The resources and certificates increment adds the two remaining directories:
 - `File.Certificates` decodes the security directory, which stores a file offset rather than an RVA, and returns the `WIN_CERTIFICATE` headers with their record bounds, eight-byte alignment, count limit, and trailing padding handling;
 - `File.CertificateData` returns one certificate blob as stored; nothing is parsed as PKCS#7, chained, or trusted.
 
-The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes, forwarders are reported as stored strings rather than followed, and certificate records make no signature or trust claim. The `ree.payload.pe/1` evidence provider is the remaining Phase 3 increment. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions, [ADR 0009](adr/0009-pe-imports-exports.md) for the import and export decisions, and [ADR 0010](adr/0010-pe-resources-certificates.md) for the resource and certificate decisions. No CLI or MCP surface calls the PE reader yet.
+The reader never executes, decompresses, maps, or writes artifact content. Section content is returned as stored bytes, forwarders are reported as stored strings rather than followed, and certificate records make no signature or trust claim. See [ADR 0008](adr/0008-pe-reader.md) for the foundation decisions, [ADR 0009](adr/0009-pe-imports-exports.md) for the import and export decisions, and [ADR 0010](adr/0010-pe-resources-certificates.md) for the resource and certificate decisions.
+
+Phase 3 also adds the second evidence provider, `internal/providers/pe`:
+
+- `Observe` hashes the artifact, parses it with the reader, and returns an `ree.evidence/1` record with a `ree.payload.pe/1` payload;
+- the payload carries the validated header and optional header, data directories, section headers with content digests, overlay bounds, import modules and thunks, export slots, resource leaves, and `WIN_CERTIFICATE` record headers;
+- a directory member is `null` when the directory is absent or the reader could not return it, and a limitation distinguishes the two cases;
+- the payload budget and content-hash budget bound every table, and trimming is a prefix in artifact order with an explicit limitation and a `truncated` flag;
+- coverage is `complete` only when no limitation or unknown was recorded, and unreadable artifacts produce an error instead of evidence.
+
+The provider does not execute, unpack, or write content, does not hash resource or certificate bytes, and does not depend on `debug/pe`. See [ADR 0011](adr/0011-pe-evidence-adapter.md) for the projection decisions and [payload-pe.md](payload-pe.md) for the wire format. No CLI or MCP surface calls the PE reader or provider yet.

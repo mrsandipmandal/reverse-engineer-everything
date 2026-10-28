@@ -177,6 +177,28 @@ Mitigations:
 
 Residual risk: a consumer that reads `Revision` and `Type` as proof of signing would overstate the evidence; the table only describes records that are present. Resource data and certificate blobs are returned as stored bytes and are not parsed or validated here. Depth and entry limits are counters, not a proof that a tree is meaningful.
 
+### PE evidence projection
+
+Threat: the adapter turns an absent, unusable, or trimmed PE directory into an empty table; a crafted artifact inflates the payload past an evidence limit; or a consumer treats a reported certificate record as proof that the artifact is signed.
+
+Mitigations:
+
+- hash exactly the caller-declared byte length and fail with `ErrRead` on a short read, so the subject digest names the whole artifact;
+- return no evidence on parse, digest, or reader failure, and never return a record for an artifact that could not be read;
+- emit `null` for a directory that is absent or unusable and use an empty array only for a present table that decoded nothing, with a limitation separating the two cases;
+- keep the reader's `NameAvailable`, `DataAvailable`, `ForwarderAvailable`, and `Truncated` flags in the payload instead of collapsing them into empty values;
+- emit `uint64` fields as decimal strings so a JSON double cannot silently change an image base, address, or file offset;
+- omit `data_sha256` when a section range was not hashed and record why, instead of hashing a prefix;
+- never read or hash resource or certificate bytes, so the schema cannot imply content it did not verify;
+- bound the payload by a byte budget shared across tables, trim only to a prefix, set `truncated` on the affected member, and state the number of omitted entries;
+- aggregate per-entry failures and cap limitation and unknown lists;
+- record certificate signature validation and resource interpretation as unknowns instead of leaving them silent;
+- let `evidence.Encode` validate the sealed record before returning it;
+- keep provider identity fixed and version caller-supplied, so a record cannot claim an engine that did not run;
+- never execute, unpack, map, or write artifact content, and do not depend on `debug/pe`.
+
+Residual risk: a consumer that ignores coverage, limitations, and `null` members can still read an absent directory as an empty one or a trimmed table as complete. Content digests prove equality of a declared section range, not that the range means what its section name suggests. Certificate record presence is not a trust signal, and a consumer that reports "signed" from this payload would overstate the evidence.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.
