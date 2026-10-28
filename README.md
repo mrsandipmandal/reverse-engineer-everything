@@ -56,12 +56,13 @@ ree help
 
 ## MCP
 
-`ree mcp` serves the REE-native MCP surface over stdin/stdout. In this phase it exposes only:
+`ree mcp` serves the REE-native MCP surface over stdin/stdout. Surface `0.2` exposes:
 
 - `ree_version`: the same build identity as `ree version --json`;
-- `ree_doctor`: local tool and environment diagnostics.
+- `ree_doctor`: local tool and environment diagnostics;
+- `ree_analyze`: read-only analysis of one local ELF or PE artifact. It returns the same path-free summary as `ree analyze --json` and, with `include_record`, the sealed `ree.evidence/1` record when it is at most 1 MiB.
 
-It supports MCP protocol versions `2024-11-05` through `2026-07-28`, including stateless discovery. The server exposes no artifact analysis tools and does not read or execute artifacts. Stdout carries MCP protocol messages only; logs and errors go to stderr.
+It supports MCP protocol versions `2024-11-05` through `2026-07-28`, including stateless discovery. `ree_analyze` reads only the regular file the caller names, never executes, modifies, or uploads an artifact, and replaces a record above the tool limit with a `record_omitted` explanation; `ree analyze --out` exports a large record. Stdout carries MCP protocol messages only; logs and errors go to stderr.
 
 Example client configuration:
 

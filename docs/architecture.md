@@ -102,12 +102,12 @@ Phase 0a contains the CLI foundation:
 Phase 0b adds the first public protocol surface and release automation:
 
 - `ree mcp`, a stdio MCP server with surface version `0.1`;
-- `ree_version` and `ree_doctor` as the only MCP tools;
+- `ree_version` and `ree_doctor` as the only MCP tools in that surface;
 - `ree doctor` with text and JSON reports for local tooling;
 - GoReleaser archives, checksums, SBOMs, and keyless signing for tagged releases;
 - Dependabot and SHA-pinned release actions.
 
-The doctor reads tool metadata through fixed argv probes with timeouts and output caps. It does not accept artifact paths, parse artifacts, or execute analysis engines. No artifact parsing or analysis tool is exposed in this phase.
+The doctor reads tool metadata through fixed argv probes with timeouts and output caps. It does not accept artifact paths, parse artifacts, or execute analysis engines. No artifact parsing or analysis tool is exposed in this phase; `ree_analyze` arrives with the Phase 4 analysis surface.
 
 ## Phase 1
 
@@ -180,4 +180,15 @@ Phase 3 also adds the second evidence provider, `internal/providers/pe`:
 - the payload budget and content-hash budget bound every table, and trimming is a prefix in artifact order with an explicit limitation and a `truncated` flag;
 - coverage is `complete` only when no limitation or unknown was recorded, and unreadable artifacts produce an error instead of evidence.
 
-The provider does not execute, unpack, or write content, does not hash resource or certificate bytes, and does not depend on `debug/pe`. See [ADR 0011](adr/0011-pe-evidence-adapter.md) for the projection decisions and [payload-pe.md](payload-pe.md) for the wire format. No CLI or MCP surface calls the PE reader or provider yet.
+The provider does not execute, unpack, or write content, does not hash resource or certificate bytes, and does not depend on `debug/pe`. See [ADR 0011](adr/0011-pe-evidence-adapter.md) for the projection decisions and [payload-pe.md](payload-pe.md) for the wire format. The Phase 4 analysis surface calls the provider through `internal/usecase/analyze`; no surface calls the reader directly.
+
+## Phase 4
+
+Phase 4 makes the readers usable without adding a new one:
+
+- `internal/usecase/analyze` selects the built-in provider from artifact magic or an explicit format, enforces the artifact size cap, requires a regular file, and returns a summary, the decoded record, and the exact canonical bytes;
+- `ree analyze` prints that summary as text or JSON, writes the sealed record with `--out`, refuses to overwrite without `--force`, and separates usage errors from operational failures;
+- `ree_analyze` exposes the same summary to MCP clients with an explicit format, an optional size cap, and an optional record carried only while it fits a 1 MiB tool limit;
+- the MCP surface moves to `0.2`; a `0.1` server still lists only `ree_version` and `ree_doctor`.
+
+The summary is path-free: it names the format, provider identity, size, subject and record digests, coverage, limitations, unknowns, and table counts. Neither the summary nor the record contains the artifact path or name, and the CLI text form prints only the base name. Analysis never executes, maps, decompresses, or writes artifact content; the only write the surface performs is the record requested with `--out`. See [ADR 0012](adr/0012-analysis-surface.md) and [analyze.md](analyze.md).

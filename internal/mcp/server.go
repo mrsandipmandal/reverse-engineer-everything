@@ -15,7 +15,7 @@ const (
 	// ServerName is the machine-readable MCP server name.
 	ServerName = "ree"
 	// SurfaceVersion versions the REE-native MCP contract.
-	SurfaceVersion = "0.1"
+	SurfaceVersion = "0.2"
 	// VersionToolName is the build identity tool.
 	VersionToolName = "ree_version"
 	// DoctorToolName is the environment diagnostics tool.
@@ -24,12 +24,12 @@ const (
 
 type doctorFunc func(context.Context) setup.Report
 
-// NewServer creates the Phase 0b MCP server.
+// NewServer creates the REE MCP server for the given build identity.
 func NewServer(info version.Info) *sdk.Server {
 	return newServer(info, setup.DiagnoseDefault)
 }
 
-// Run serves the Phase 0b MCP server over stdio.
+// Run serves the REE MCP server over stdio.
 func Run(ctx context.Context, info version.Info) error {
 	return NewServer(info).Run(ctx, &sdk.StdioTransport{})
 }
@@ -44,7 +44,7 @@ func newServer(info version.Info, diagnose doctorFunc) *sdk.Server {
 		},
 		&sdk.ServerOptions{
 			Instructions: fmt.Sprintf(
-				"REE MCP surface %s. This server exposes build identity and local environment diagnostics only; no artifact analysis tools are available.",
+				"REE MCP surface %s. This server exposes build identity, local environment diagnostics, and read-only analysis of one local ELF or PE artifact. ree_analyze returns a path-free summary and optionally the sealed evidence record; it never executes, modifies, or uploads an artifact.",
 				SurfaceVersion,
 			),
 		},
@@ -66,6 +66,19 @@ func newServer(info version.Info, diagnose doctorFunc) *sdk.Server {
 		Annotations: readOnlyAnnotations("REE doctor"),
 	}, func(ctx context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, setup.Report, error) {
 		return nil, diagnose(ctx), nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        AnalyzeToolName,
+		Title:       "REE analyze",
+		Description: "Analyze one local ELF or PE artifact and return its path-free summary and optional sealed evidence. This tool reads the file and never executes or modifies it.",
+		Annotations: readOnlyAnnotations("REE analyze"),
+	}, func(ctx context.Context, _ *sdk.CallToolRequest, in analyzeInput) (*sdk.CallToolResult, analyzeReport, error) {
+		report, err := analyzeArtifact(ctx, in, info.Version)
+		if err != nil {
+			return nil, analyzeReport{}, err
+		}
+		return nil, report, nil
 	})
 
 	return server
