@@ -251,6 +251,7 @@ func parseImage(r io.ReaderAt, offset, size int64, limits Limits) (*File, error)
 	if err := readAt(image, int64(headerSize), table, size); err != nil {
 		return nil, err
 	}
+	file.commandBytes = len(table)
 	file.parseCommands(table, int(limit), int(declaredCommands))
 
 	if file.invalidNames > 0 {

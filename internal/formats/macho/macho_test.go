@@ -652,25 +652,39 @@ func TestLimitsDefaultsAndClamping(t *testing.T) {
 		t.Fatalf("zero limits = %#v, want %#v", got, defaults)
 	}
 	high := Limits{
-		ArtifactBytes:    1 << 40,
-		FatSlices:        1 << 20,
-		LoadCommands:     1 << 20,
-		LoadCommandBytes: 1 << 40,
-		Segments:         1 << 20,
-		Sections:         1 << 20,
-		SectionDataBytes: 1 << 40,
+		ArtifactBytes:     1 << 40,
+		FatSlices:         1 << 20,
+		LoadCommands:      1 << 20,
+		LoadCommandBytes:  1 << 40,
+		Segments:          1 << 20,
+		Sections:          1 << 20,
+		SectionDataBytes:  1 << 40,
+		Dylibs:            1 << 20,
+		StringBytes:       1 << 20,
+		BuildTools:        1 << 20,
+		Symbols:           1 << 20,
+		SymbolStringBytes: 1 << 40,
+		CodeSignBlobs:     1 << 20,
+		CodeSignBytes:     1 << 40,
 	}.withDefaults()
 	if high != defaults {
 		t.Fatalf("clamped limits = %#v, want %#v", high, defaults)
 	}
 	low := Limits{
-		ArtifactBytes:    1024,
-		FatSlices:        2,
-		LoadCommands:     3,
-		LoadCommandBytes: 4096,
-		Segments:         4,
-		Sections:         5,
-		SectionDataBytes: 6,
+		ArtifactBytes:     1024,
+		FatSlices:         2,
+		LoadCommands:      3,
+		LoadCommandBytes:  4096,
+		Segments:          4,
+		Sections:          5,
+		SectionDataBytes:  6,
+		Dylibs:            MaxDylibs,
+		StringBytes:       MaxStringBytes,
+		BuildTools:        MaxBuildTools,
+		Symbols:           MaxSymbols,
+		SymbolStringBytes: MaxSymbolStringBytes,
+		CodeSignBlobs:     MaxCodeSignBlobs,
+		CodeSignBytes:     MaxCodeSignBytes,
 	}
 	if got := low.withDefaults(); got != low {
 		t.Fatalf("lowered limits changed: %#v", got)
