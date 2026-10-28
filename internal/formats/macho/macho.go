@@ -1,12 +1,13 @@
 // Package macho reads Mach-O and universal (fat) binary headers, load commands,
-// segments, and sections without executing the artifact.
+// segments, sections, dylibs, build metadata, symbols, and code signature
+// headers without executing the artifact.
 //
 // Parse accepts thin 32-bit and 64-bit Mach-O images in either byte order and
 // universal binaries whose fat header lists one image per architecture. Each
 // image is loaded behind explicit size, count, and allocation limits. Segment
 // and section names are decoded with the table that declares them; section
-// contents are read on demand under a separate limit. Dylibs, symbols, code
-// signing, and other load command payloads are left to a later layer.
+// contents, dylib names, symbols, and code signature headers are read on demand
+// under separate limits. Code signature bytes are never validated.
 //
 // Input is untrusted. A structurally impossible header fails with a sentinel
 // error. A load command table or section table cut short by the artifact end or
@@ -43,6 +44,20 @@ const (
 	MaxSections = 4096
 	// MaxSectionDataBytes bounds one section content read.
 	MaxSectionDataBytes int64 = 64 << 20
+	// MaxDylibs bounds the dylib load commands loaded from one image.
+	MaxDylibs = 2048
+	// MaxStringBytes bounds one dylib, symbol, or other decoded name.
+	MaxStringBytes = 4 << 10
+	// MaxBuildTools bounds the LC_BUILD_VERSION tool records loaded.
+	MaxBuildTools = 128
+	// MaxSymbols bounds the symbol table entries loaded from one image.
+	MaxSymbols = 262_144
+	// MaxSymbolStringBytes bounds the symbol string table size loaded.
+	MaxSymbolStringBytes int64 = 32 << 20
+	// MaxCodeSignBlobs bounds the code signature blob index entries loaded.
+	MaxCodeSignBlobs = 64
+	// MaxCodeSignBytes bounds the code signature data read.
+	MaxCodeSignBytes int64 = 8 << 20
 )
 
 // Sentinel errors. Errors returned by this package wrap exactly one of these
@@ -66,6 +81,9 @@ var (
 	// ErrUnavailable reports section content that is not present in the
 	// artifact, such as a range beyond the slice end.
 	ErrUnavailable = errors.New("macho: content unavailable")
+	// ErrNotFound reports a load command that the artifact does not declare,
+	// such as a dylib, symbol table, or code signature command.
+	ErrNotFound = errors.New("macho: metadata not found")
 )
 
 // Canonical magic values reported by Header.Magic and Artifact.Magic.
@@ -226,6 +244,8 @@ type File struct {
 	reader io.ReaderAt
 	size   int64
 	limits Limits
+	// commandBytes is the number of load command table bytes loaded.
+	commandBytes int
 
 	// Aggregated defects, reported once at the end of Parse so a crafted image
 	// cannot inflate the limitation list past its table sizes.
@@ -347,18 +367,39 @@ type Limits struct {
 	Sections int
 	// SectionDataBytes bounds one section content read.
 	SectionDataBytes int64
+	// Dylibs bounds the dylib load commands loaded from one image.
+	Dylibs int
+	// StringBytes bounds one decoded name.
+	StringBytes int
+	// BuildTools bounds the LC_BUILD_VERSION tool records loaded.
+	BuildTools int
+	// Symbols bounds the symbol table entries loaded from one image.
+	Symbols int
+	// SymbolStringBytes bounds the symbol string table size loaded.
+	SymbolStringBytes int64
+	// CodeSignBlobs bounds the code signature blob index entries loaded.
+	CodeSignBlobs int
+	// CodeSignBytes bounds the code signature data read.
+	CodeSignBytes int64
 }
 
 // DefaultLimits returns the package limits.
 func DefaultLimits() Limits {
 	return Limits{
-		ArtifactBytes:    MaxArtifactBytes,
-		FatSlices:        MaxFatSlices,
-		LoadCommands:     MaxLoadCommands,
-		LoadCommandBytes: MaxLoadCommandBytes,
-		Segments:         MaxSegments,
-		Sections:         MaxSections,
-		SectionDataBytes: MaxSectionDataBytes,
+		ArtifactBytes:     MaxArtifactBytes,
+		FatSlices:         MaxFatSlices,
+		LoadCommands:      MaxLoadCommands,
+		LoadCommandBytes:  MaxLoadCommandBytes,
+		Segments:          MaxSegments,
+		Sections:          MaxSections,
+		SectionDataBytes:  MaxSectionDataBytes,
+		Dylibs:            MaxDylibs,
+		StringBytes:       MaxStringBytes,
+		BuildTools:        MaxBuildTools,
+		Symbols:           MaxSymbols,
+		SymbolStringBytes: MaxSymbolStringBytes,
+		CodeSignBlobs:     MaxCodeSignBlobs,
+		CodeSignBytes:     MaxCodeSignBytes,
 	}
 }
 
@@ -405,6 +446,48 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.SectionDataBytes > MaxSectionDataBytes {
 		l.SectionDataBytes = MaxSectionDataBytes
+	}
+	if l.Dylibs <= 0 {
+		l.Dylibs = defaults.Dylibs
+	}
+	if l.Dylibs > MaxDylibs {
+		l.Dylibs = MaxDylibs
+	}
+	if l.StringBytes <= 0 {
+		l.StringBytes = defaults.StringBytes
+	}
+	if l.StringBytes > MaxStringBytes {
+		l.StringBytes = MaxStringBytes
+	}
+	if l.BuildTools <= 0 {
+		l.BuildTools = defaults.BuildTools
+	}
+	if l.BuildTools > MaxBuildTools {
+		l.BuildTools = MaxBuildTools
+	}
+	if l.Symbols <= 0 {
+		l.Symbols = defaults.Symbols
+	}
+	if l.Symbols > MaxSymbols {
+		l.Symbols = MaxSymbols
+	}
+	if l.SymbolStringBytes <= 0 {
+		l.SymbolStringBytes = defaults.SymbolStringBytes
+	}
+	if l.SymbolStringBytes > MaxSymbolStringBytes {
+		l.SymbolStringBytes = MaxSymbolStringBytes
+	}
+	if l.CodeSignBlobs <= 0 {
+		l.CodeSignBlobs = defaults.CodeSignBlobs
+	}
+	if l.CodeSignBlobs > MaxCodeSignBlobs {
+		l.CodeSignBlobs = MaxCodeSignBlobs
+	}
+	if l.CodeSignBytes <= 0 {
+		l.CodeSignBytes = defaults.CodeSignBytes
+	}
+	if l.CodeSignBytes > MaxCodeSignBytes {
+		l.CodeSignBytes = MaxCodeSignBytes
 	}
 	return l
 }
