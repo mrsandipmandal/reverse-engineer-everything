@@ -44,7 +44,7 @@ func newServer(info version.Info, diagnose doctorFunc) *sdk.Server {
 		},
 		&sdk.ServerOptions{
 			Instructions: fmt.Sprintf(
-				"REE MCP surface %s. This server exposes build identity, local environment diagnostics, and read-only analysis of one local ELF or PE artifact. ree_analyze returns a path-free summary and optionally the sealed evidence record; it never executes, modifies, or uploads an artifact.",
+				"REE MCP surface %s. This server exposes build identity, local environment diagnostics, and read-only analysis of one local ELF, PE, or Mach-O artifact. ree_analyze returns a path-free summary and optionally the sealed evidence record; it never executes, modifies, or uploads an artifact.",
 				SurfaceVersion,
 			),
 		},
@@ -71,7 +71,7 @@ func newServer(info version.Info, diagnose doctorFunc) *sdk.Server {
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        AnalyzeToolName,
 		Title:       "REE analyze",
-		Description: "Analyze one local ELF or PE artifact and return its path-free summary and optional sealed evidence. This tool reads the file and never executes or modifies it.",
+		Description: "Analyze one local ELF, PE, or Mach-O artifact and return its path-free summary and optional sealed evidence. This tool reads the file and never executes or modifies it.",
 		Annotations: readOnlyAnnotations("REE analyze"),
 	}, func(ctx context.Context, _ *sdk.CallToolRequest, in analyzeInput) (*sdk.CallToolResult, analyzeReport, error) {
 		report, err := analyzeArtifact(ctx, in, info.Version)

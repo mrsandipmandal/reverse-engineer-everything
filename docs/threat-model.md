@@ -199,6 +199,45 @@ Mitigations:
 
 Residual risk: a consumer that ignores coverage, limitations, and `null` members can still read an absent directory as an empty one or a trimmed table as complete. Content digests prove equality of a declared section range, not that the range means what its section name suggests. Certificate record presence is not a trust signal, and a consumer that reports "signed" from this payload would overstate the evidence.
 
+### Mach-O parsing
+
+Threat: a crafted thin or universal header, load command chain, segment or section table, dylib name, symbol table, or code signature superblob causes excessive allocation, integer overflow, a panic, or a table that looks complete while it is a prefix.
+
+Mitigations:
+
+- require a known magic and a header that fits inside the artifact before reading any table;
+- reject a universal header with no slices and evaluate every slice range against the artifact size before parsing an image;
+- require every load command to fit inside the declared command bytes and record a truncated chain instead of reading past it;
+- bound slice count, load command count and bytes, segment count, section count, section content, dylib count, name length, build tools, symbol count, symbol string bytes, signature blob count, and signature bytes;
+- keep declared counts separate from loaded counts and set `Truncated` plus an aggregated limitation whenever a bound stops a table;
+- decode every section name and dylib and symbol name as strict UTF-8 and mark it unavailable instead of repairing it;
+- re-read the load command table from the bounded slice reader rather than retaining it per slice;
+- treat an absent command as `ErrNotFound`, a command too short for its fixed part as `ErrInvalid`, and a defect that still permits enumeration as a limitation;
+- keep code signature handling to the superblob and blob headers; never verify a signature or decode a certificate or entitlement.
+
+Residual risk: the Mach-O reader is not a sandbox. It bounds its own allocations and reads, but a consumer that trusts a declared offset or size without checking it can still misbehave. A slice that fails to parse is reported as a status, not hidden, but a consumer that ignores the status can still treat a partial universal binary as complete.
+
+### Mach-O evidence projection
+
+Threat: the adapter turns an absent, unusable, or trimmed Mach-O table into an empty one; a universal binary is collapsed to one architecture; a crafted artifact inflates the payload past an evidence limit; or a consumer treats a reported code signature as proof that the artifact is signed.
+
+Mitigations:
+
+- hash exactly the caller-declared byte length and fail with `ErrRead` on a short read, so the subject digest names the whole artifact;
+- return one record per artifact with every slice listed, each carrying its own status, header, tables, and limitations, so a broken slice cannot hide a good one or the reverse;
+- emit `null` for a command the image does not declare and an empty array only for a present table that decoded nothing, with a limitation separating the two cases;
+- keep the reader's `NameAvailable`, `Truncated`, and per-table limitation list in the payload instead of collapsing them into empty values;
+- emit 64-bit addresses, offsets, sizes, and values as decimal strings so a JSON double cannot silently change them;
+- hash section bytes only for entries that already fit the payload budget, and only under the artifact-wide content budget;
+- bound the payload with equal per-slice shares and per-table shares inside a slice, trim only to a prefix, set `truncated` on the affected member, and state the number of omitted entries;
+- aggregate per-entry failures and cap limitation and unknown lists;
+- record export tries, chained fixups, relocations, Objective-C metadata, ARM64e pointer authentication, signature validation, and entitlements as unknowns instead of leaving them silent;
+- let `evidence.Encode` validate the sealed record before returning it;
+- keep provider identity fixed and version caller-supplied;
+- never execute, map, decompress, or write artifact content, and do not depend on `debug/macho`.
+
+Residual risk: a consumer that ignores coverage, limitations, slice status, and `null` members can still read an absent table as an empty one or a trimmed table as complete. Content digests prove equality of a declared section range, not that the range means what its section name suggests. Code signature presence is not a trust signal: no signature, certificate, or entitlement is validated, and entitlements are not decoded at all.
+
 ### Archive bombs and path traversal
 
 Threat: disk exhaustion, writes outside the workspace, symlink escapes.

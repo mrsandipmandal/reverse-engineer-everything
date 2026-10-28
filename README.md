@@ -6,7 +6,7 @@
 
 **Evidence-first reverse engineering for binaries, apps, and artifacts.**
 
-> Status: pre-alpha. `ree analyze` reads ELF and PE artifacts into sealed evidence with a path-free summary. The MCP surface still exposes build identity and local diagnostics only.
+> Status: pre-alpha. `ree analyze` reads ELF, PE, and Mach-O artifacts into sealed evidence with a path-free summary. The MCP surface still exposes build identity and local diagnostics only.
 
 ## Why
 
@@ -50,7 +50,7 @@ ree mcp
 ree help
 ```
 
-`ree analyze` reads one local ELF or PE artifact, selects the built-in provider by magic, and prints a path-free summary or emits the sealed `ree.evidence/1` record with `--out`. It is read-only and never executes artifact content. See [docs/analyze.md](docs/analyze.md).
+`ree analyze` reads one local ELF, PE, or Mach-O artifact, selects the built-in provider by magic, and prints a path-free summary or emits the sealed `ree.evidence/1` record with `--out`. It is read-only and never executes artifact content. See [docs/analyze.md](docs/analyze.md).
 
 `ree doctor` reports whether the local tools used for development and releases are available. Missing optional tools do not fail the command; the JSON form is intended for automation.
 
@@ -60,7 +60,7 @@ ree help
 
 - `ree_version`: the same build identity as `ree version --json`;
 - `ree_doctor`: local tool and environment diagnostics;
-- `ree_analyze`: read-only analysis of one local ELF or PE artifact. It returns the same path-free summary as `ree analyze --json` and, with `include_record`, the sealed `ree.evidence/1` record when it is at most 1 MiB.
+- `ree_analyze`: read-only analysis of one local ELF, PE, or Mach-O artifact. It returns the same path-free summary as `ree analyze --json` and, with `include_record`, the sealed `ree.evidence/1` record when it is at most 1 MiB.
 
 It supports MCP protocol versions `2024-11-05` through `2026-07-28`, including stateless discovery. `ree_analyze` reads only the regular file the caller names, never executes, modifies, or uploads an artifact, and replaces a record above the tool limit with a `record_omitted` explanation; `ree analyze --out` exports a large record. Stdout carries MCP protocol messages only; logs and errors go to stderr.
 

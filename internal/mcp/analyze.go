@@ -20,8 +20,8 @@ const (
 
 // analyzeInput is the ree_analyze argument object.
 type analyzeInput struct {
-	Path          string `json:"path" jsonschema:"Path to one local ELF or PE artifact."`
-	Format        string `json:"format,omitempty" jsonschema:"Provider selection: auto (default), elf, or pe. Detection never falls back when a format is given."`
+	Path          string `json:"path" jsonschema:"Path to one local ELF, PE, or Mach-O artifact."`
+	Format        string `json:"format,omitempty" jsonschema:"Provider selection: auto (default), elf, pe, or macho. Detection never falls back when a format is given."`
 	MaxBytes      int64  `json:"max_bytes,omitempty" jsonschema:"Maximum artifact size in bytes. Zero uses the built-in limit of 2 GiB."`
 	IncludeRecord bool   `json:"include_record,omitempty" jsonschema:"Return the sealed ree.evidence/1 record when it fits the tool limit. The default is false."`
 }
@@ -85,7 +85,7 @@ func analyzeToolError(path string, err error) error {
 	case errors.Is(err, analyze.ErrTooLarge):
 		return fmt.Errorf("artifact exceeds the size limit: %w", err)
 	case errors.Is(err, analyze.ErrUnsupportedFormat):
-		return fmt.Errorf("unsupported format: %w (set format to elf or pe to read it anyway)", err)
+		return fmt.Errorf("unsupported format: %w (set format to elf, pe, or macho to read it anyway)", err)
 	default:
 		return err
 	}
