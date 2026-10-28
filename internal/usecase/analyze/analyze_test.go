@@ -84,6 +84,81 @@ func TestAnalyzePE(t *testing.T) {
 	assertRecordRoundTrip(t, result)
 }
 
+func TestAnalyzeMachO(t *testing.T) {
+	data := minimalMachO64()
+	path := writeArtifact(t, "sample.macho", data)
+
+	result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+
+	summary := result.Summary
+	if summary.Format != FormatMachO {
+		t.Errorf("format = %q, want %q", summary.Format, FormatMachO)
+	}
+	if summary.ProviderID != "builtin.macho" {
+		t.Errorf("provider id = %q, want builtin.macho", summary.ProviderID)
+	}
+	if summary.Size != int64(len(data)) {
+		t.Errorf("size = %d, want %d", summary.Size, len(data))
+	}
+	if summary.Coverage != string(evidence.CoverageComplete) {
+		t.Errorf("coverage = %q, want complete; limitations=%v unknowns=%v",
+			summary.Coverage, summary.Limitations, summary.Unknowns)
+	}
+	if summary.Counts != (Counts{}) {
+		t.Errorf("counts = %+v, want zero", summary.Counts)
+	}
+
+	assertRecordRoundTrip(t, result)
+}
+
+func TestAnalyzeFatMachO(t *testing.T) {
+	data := minimalFatMachO(minimalMachO64(), minimalMachO64())
+	path := writeArtifact(t, "sample.fat", data)
+
+	result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	if result.Summary.Format != FormatMachO {
+		t.Errorf("format = %q, want %q", result.Summary.Format, FormatMachO)
+	}
+	if result.Summary.Size != int64(len(data)) {
+		t.Errorf("size = %d, want %d", result.Summary.Size, len(data))
+	}
+	if result.Summary.Counts != (Counts{}) {
+		t.Errorf("counts = %+v, want zero", result.Summary.Counts)
+	}
+	assertRecordRoundTrip(t, result)
+
+	var payload struct {
+		Schema   string `json:"schema"`
+		Artifact struct {
+			Fat        bool `json:"fat"`
+			SliceCount int  `json:"slice_count"`
+		} `json:"artifact"`
+		Slices []struct {
+			Status string `json:"status"`
+		} `json:"slices"`
+	}
+	if err := json.Unmarshal(result.Record.Payload, &payload); err != nil {
+		t.Fatalf("payload: %v", err)
+	}
+	if payload.Schema != "ree.payload.macho/1" || !payload.Artifact.Fat {
+		t.Fatalf("payload = %+v", payload)
+	}
+	if payload.Artifact.SliceCount != 2 || len(payload.Slices) != 2 {
+		t.Fatalf("slices = %d, count = %d", len(payload.Slices), payload.Artifact.SliceCount)
+	}
+	for _, slice := range payload.Slices {
+		if slice.Status != "parsed" {
+			t.Errorf("slice status = %q, want parsed", slice.Status)
+		}
+	}
+}
+
 // assertRecordRoundTrip checks that the sealed bytes decode, that the digest
 // matches, and that the decoded record equals the returned one.
 func assertRecordRoundTrip(t *testing.T, result Result) {
@@ -124,6 +199,8 @@ func TestAnalyzeExplicitFormat(t *testing.T) {
 		{name: "elf padded case and spaces", format: " ELF ", data: minimalELF64(), want: FormatELF},
 		{name: "elf uppercased", format: "Elf", data: minimalELF64(), want: FormatELF},
 		{name: "pe uppercased", format: "PE", data: minimalPE32(), want: FormatPE},
+		{name: "macho", format: "macho", data: minimalMachO64(), want: FormatMachO},
+		{name: "macho padded case", format: " MachO ", data: minimalMachO64(), want: FormatMachO},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -152,6 +229,8 @@ func TestAnalyzeExplicitFormatMismatch(t *testing.T) {
 	}{
 		{name: "elf bytes as pe", format: FormatPE, data: minimalELF64()},
 		{name: "pe bytes as elf", format: FormatELF, data: minimalPE32()},
+		{name: "macho bytes as elf", format: FormatELF, data: minimalMachO64()},
+		{name: "elf bytes as macho", format: FormatMachO, data: minimalELF64()},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -189,7 +268,7 @@ func TestAnalyzeRejectsOptions(t *testing.T) {
 		wantMsg string
 	}{
 		{name: "missing version", opts: Options{}, want: ErrOptions, wantMsg: "provider version"},
-		{name: "unknown format", opts: Options{Format: "macho", ProviderVersion: testVersion}, want: ErrOptions, wantMsg: "unknown format"},
+		{name: "unknown format", opts: Options{Format: "coff", ProviderVersion: testVersion}, want: ErrOptions, wantMsg: "unknown format"},
 		{name: "negative max bytes", opts: Options{ProviderVersion: testVersion, MaxBytes: -1}, want: ErrOptions, wantMsg: "negative"},
 	}
 	for _, tc := range tests {
@@ -374,6 +453,24 @@ func TestCountPayload(t *testing.T) {
 			want:    Counts{Sections: 1},
 		},
 		{
+			name:    "macho slices summed",
+			format:  FormatMachO,
+			payload: `{"schema":"ree.payload.macho/1","slices":[{"segments":[{},{}],"sections":[{}],"dylibs":{"dylibs":[{"command":12},{"command":13}]},"symbols":{"symbols":[{},{},{}]}},{"segments":[{}],"sections":[{},{}],"dylibs":null,"symbols":null}]}`,
+			want:    Counts{Sections: 3, Segments: 3, Symbols: 3, Imports: 1},
+		},
+		{
+			name:    "macho absent tables",
+			format:  FormatMachO,
+			payload: `{"schema":"ree.payload.macho/1","slices":[{"segments":[],"sections":[],"dylibs":null,"symbols":null}]}`,
+			want:    Counts{},
+		},
+		{
+			name:    "macho failed slice",
+			format:  FormatMachO,
+			payload: `{"schema":"ree.payload.macho/1","slices":[{"segments":null,"sections":null,"dylibs":null,"symbols":null}]}`,
+			want:    Counts{},
+		},
+		{
 			name:    "pe exported but empty tables",
 			format:  FormatPE,
 			payload: `{"schema":"ree.payload.pe/1","sections":[],"imports":{"modules":[]},"exports":{"exports":[]},"resources":{"resources":[]},"certificates":{"certificates":[]}}`,
@@ -399,12 +496,14 @@ func TestCountPayloadRejects(t *testing.T) {
 		format  string
 		payload string
 	}{
-		{name: "unknown format", format: "macho", payload: `{}`},
+		{name: "unknown format", format: "coff", payload: `{}`},
 		{name: "invalid json", format: FormatELF, payload: `{`},
 		{name: "wrong elf schema", format: FormatELF, payload: `{"schema":"ree.payload.pe/1"}`},
 		{name: "missing elf schema", format: FormatELF, payload: `{}`},
 		{name: "invalid pe json", format: FormatPE, payload: `{`},
 		{name: "wrong pe schema", format: FormatPE, payload: `{"schema":"ree.payload.elf/1"}`},
+		{name: "invalid macho json", format: FormatMachO, payload: `{`},
+		{name: "wrong macho schema", format: FormatMachO, payload: `{"schema":"ree.payload.pe/1"}`},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -425,6 +524,12 @@ func TestDetect(t *testing.T) {
 		{name: "elf", data: minimalELF64(), want: FormatELF},
 		{name: "pe", data: minimalPE32(), want: FormatPE},
 		{name: "bare mz", data: []byte("MZ"), want: FormatPE},
+		{name: "macho 64 little endian", data: minimalMachO64(), want: FormatMachO},
+		{name: "macho 32 little endian", data: []byte{0xce, 0xfa, 0xed, 0xfe, 0, 0, 0, 0}, want: FormatMachO},
+		{name: "macho 32 big endian", data: []byte{0xfe, 0xed, 0xfa, 0xce, 0, 0, 0, 0}, want: FormatMachO},
+		{name: "fat macho", data: minimalFatMachO(minimalMachO64()), want: FormatMachO},
+		{name: "fat macho 64", data: []byte{0xca, 0xfe, 0xba, 0xbf, 0, 0, 0, 0}, want: FormatMachO},
+		{name: "swapped fat macho", data: []byte{0xbe, 0xba, 0xfe, 0xca, 0, 0, 0, 0}, want: FormatMachO},
 		{name: "three bytes", data: []byte("\x7fEL"), wantErr: true},
 		{name: "empty", data: nil, wantErr: true},
 		{name: "text", data: []byte("PK\x03\x04"), wantErr: true},

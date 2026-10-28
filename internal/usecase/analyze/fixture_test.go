@@ -55,6 +55,46 @@ func minimalPE32() []byte {
 	return data
 }
 
+// minimalMachO64 is a valid 64-bit little-endian Mach-O header with no load
+// commands, no segments, and no sections. The reader accepts it with complete
+// coverage.
+func minimalMachO64() []byte {
+	data := make([]byte, 32)
+	binary.LittleEndian.PutUint32(data[0:], 0xfeedfacf) // MH_MAGIC_64
+	binary.LittleEndian.PutUint32(data[4:], 0x01000007) // CPU_TYPE_X86_64
+	binary.LittleEndian.PutUint32(data[8:], 3)          // CPU_SUBTYPE_X86_64_ALL
+	binary.LittleEndian.PutUint32(data[12:], 2)         // MH_EXECUTE
+	return data
+}
+
+// minimalFatMachO wraps images in a 32-bit universal header. Each slice starts
+// at the next 4 KiB boundary so the declared alignment matches the layout.
+func minimalFatMachO(images ...[]byte) []byte {
+	const entrySize = 20
+	offsets := make([]int, len(images))
+	total := 8 + len(images)*entrySize
+	for i, image := range images {
+		if total%0x1000 != 0 {
+			total += 0x1000 - total%0x1000
+		}
+		offsets[i] = total
+		total += len(image)
+	}
+	data := make([]byte, total)
+	binary.BigEndian.PutUint32(data[0:], 0xcafebabe) // FAT_MAGIC
+	binary.BigEndian.PutUint32(data[4:], uint32(len(images)))
+	for i, image := range images {
+		entry := data[8+i*entrySize:]
+		binary.BigEndian.PutUint32(entry[0:], 0x01000007) // CPU_TYPE_X86_64
+		binary.BigEndian.PutUint32(entry[4:], 3)          // CPU_SUBTYPE_X86_64_ALL
+		binary.BigEndian.PutUint32(entry[8:], uint32(offsets[i]))
+		binary.BigEndian.PutUint32(entry[12:], uint32(len(image)))
+		binary.BigEndian.PutUint32(entry[16:], 12) // 2^12 alignment
+		copy(data[offsets[i]:], image)
+	}
+	return data
+}
+
 // writeArtifact writes data to a uniquely named file under the test's temporary
 // directory and returns its path.
 func writeArtifact(t testing.TB, name string, data []byte) string {

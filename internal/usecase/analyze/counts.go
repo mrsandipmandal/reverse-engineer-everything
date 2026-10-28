@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	elfprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/elf"
+	machoprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/macho"
 	peprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/pe"
 )
 
@@ -21,6 +22,8 @@ func countPayload(format string, payload []byte) (Counts, error) {
 		return countELF(payload)
 	case FormatPE:
 		return countPE(payload)
+	case FormatMachO:
+		return countMachO(payload)
 	default:
 		return Counts{}, fmt.Errorf("%w: %q", ErrUnsupportedFormat, format)
 	}
@@ -96,6 +99,67 @@ func countPE(payload []byte) (Counts, error) {
 	}
 	if raw.Certificates != nil {
 		counts.Certificates = len(raw.Certificates.Certificates)
+	}
+	return counts, nil
+}
+
+// machoCountPayload is the counted subset of ree.payload.macho/1.
+//
+// One artifact carries one slice per architecture, so every count sums the
+// slices. A table member is null when the image does not declare that command,
+// which counts zero.
+type machoCountPayload struct {
+	Schema string            `json:"schema"`
+	Slices []machoCountSlice `json:"slices"`
+}
+
+type machoCountSlice struct {
+	Segments []json.RawMessage `json:"segments"`
+	Sections []json.RawMessage `json:"sections"`
+	Dylibs   *machoDylibTable  `json:"dylibs"`
+	Symbols  *machoSymbolTable `json:"symbols"`
+}
+
+type machoDylibTable struct {
+	Dylibs []machoDylib `json:"dylibs"`
+}
+
+// machoDylib keeps only the command, so the count does not depend on the
+// presentation fields of a dylib entry.
+type machoDylib struct {
+	Command uint32 `json:"command"`
+}
+
+type machoSymbolTable struct {
+	Symbols []json.RawMessage `json:"symbols"`
+}
+
+// machoCommandDylibID is LC_ID_DYLIB. It names the image itself, so it is an
+// install name rather than a dependency and is not counted as an import.
+const machoCommandDylibID uint32 = 0xd
+
+func countMachO(payload []byte) (Counts, error) {
+	var raw machoCountPayload
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		return Counts{}, fmt.Errorf("decode %s payload: %w", machoprovider.PayloadSchema, err)
+	}
+	if raw.Schema != machoprovider.PayloadSchema {
+		return Counts{}, fmt.Errorf("decode %s payload: schema is %q", machoprovider.PayloadSchema, raw.Schema)
+	}
+	var counts Counts
+	for _, slice := range raw.Slices {
+		counts.Segments += len(slice.Segments)
+		counts.Sections += len(slice.Sections)
+		if slice.Dylibs != nil {
+			for _, dylib := range slice.Dylibs.Dylibs {
+				if dylib.Command != machoCommandDylibID {
+					counts.Imports++
+				}
+			}
+		}
+		if slice.Symbols != nil {
+			counts.Symbols += len(slice.Symbols.Symbols)
+		}
 	}
 	return counts, nil
 }

@@ -192,3 +192,20 @@ Phase 4 makes the readers usable without adding a new one:
 - the MCP surface moves to `0.2`; a `0.1` server still lists only `ree_version` and `ree_doctor`.
 
 The summary is path-free: it names the format, provider identity, size, subject and record digests, coverage, limitations, unknowns, and table counts. Neither the summary nor the record contains the artifact path or name, and the CLI text form prints only the base name. Analysis never executes, maps, decompresses, or writes artifact content; the only write the surface performs is the record requested with `--out`. See [ADR 0012](adr/0012-analysis-surface.md) and [analyze.md](analyze.md).
+
+## Phase 5
+
+Phase 5 adds a read-only Mach-O reader in `internal/formats/macho` and the third evidence provider, `internal/providers/macho`:
+
+- the reader validates thin 32-bit and 64-bit headers in both byte orders, `FAT_MAGIC` and `FAT_MAGIC_64` slice tables, and a load command chain in which every command must fit inside the declared command bytes;
+- segments and sections are decoded with strict fixed-width names, and section content is read on demand as stored bytes;
+- dylib commands, `LC_UUID`, `LC_BUILD_VERSION` and legacy version-min commands, `LC_MAIN`, `LC_SYMTAB` symbols, and `LC_CODE_SIGNATURE` superblob and blob headers are decoded on demand, each under its own count and byte limit;
+- a slice that cannot be parsed keeps its status and limitation, so one broken architecture never hides the others, and only a reader failure fails the observation;
+- code signature bytes are reported as headers only: no signature, certificate chain, or entitlement is parsed or validated.
+
+`Observe` returns one `ree.evidence/1` record per artifact with a `ree.payload.macho/1` payload. The subject digest covers the whole file, so a universal binary is one record whose `slices` list every architecture. The payload budget charges the artifact envelope first, then gives every slice an equal share, and inside a slice apportions segments 20, sections 30, dylibs 20, symbols 20, and signature blobs 10 percent of what remains. A table that does not fit is a prefix with `truncated` set and one limitation naming the omitted count.
+
+The provider does not execute, map, decompress, or write content and does not depend on `debug/macho`. See [ADR 0013](adr/0013-macho-reader.md), [ADR 0014](adr/0014-macho-metadata.md), and [ADR 0015](adr/0015-macho-evidence-adapter.md) for the decisions, and [payload-macho.md](payload-macho.md) for the wire format.
+
+The analysis surface selects the provider by magic — `0xfeedface`, `0xfeedfacf`, `0xcefaedfe`, `0xcffaedfe`, `0xcafebabe`, `0xcafebabf`, and their byte-swapped forms — or by `--format macho`. Because `0xcafebabe` is also the Java class-file magic, a class file is reported as a Mach-O artifact whose universal header does not parse rather than as an unknown format.
+

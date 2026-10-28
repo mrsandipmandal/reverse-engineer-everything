@@ -257,7 +257,7 @@ func TestRunAnalyzeUsage(t *testing.T) {
 	}{
 		{name: "missing path", args: nil},
 		{name: "extra path", args: []string{path, path}},
-		{name: "unknown format", args: []string{path, "--format", "macho"}},
+		{name: "unknown format", args: []string{path, "--format", "coff"}},
 		{name: "negative max bytes", args: []string{path, "--max-bytes", "-1"}},
 		{name: "non-numeric max bytes", args: []string{path, "--max-bytes", "lots"}},
 		{name: "force without out", args: []string{path, "--force"}},

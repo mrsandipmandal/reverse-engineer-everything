@@ -1,10 +1,11 @@
 // Package analyze selects a built-in provider for a local artifact and returns
 // sealed ree.evidence/1 evidence with a deterministic summary.
 //
-// Analyze inspects only the artifact bytes. It detects ELF or PE by magic,
-// delegates the read to the matching provider, and never executes, maps,
-// decompresses, or writes artifact content. The artifact path is used for file
-// system access only and never enters the evidence record or the summary.
+// Analyze inspects only the artifact bytes. It detects ELF, PE, or Mach-O and
+// universal binaries by magic, delegates the read to the matching provider, and
+// never executes, maps, decompresses, or writes artifact content. The artifact
+// path is used for file system access only and never enters the evidence record
+// or the summary.
 package analyze
 
 import (
@@ -18,6 +19,7 @@ import (
 	"github.com/mrsandipmandal/reverse-engineer-everything/internal/contracts/canonical"
 	"github.com/mrsandipmandal/reverse-engineer-everything/internal/contracts/evidence"
 	elfprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/elf"
+	machoprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/macho"
 	peprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/pe"
 )
 
@@ -28,6 +30,9 @@ const (
 	FormatELF = "elf"
 	// FormatPE selects the built-in PE provider.
 	FormatPE = "pe"
+	// FormatMachO selects the built-in Mach-O provider. One provider reads
+	// both thin images and universal binaries.
+	FormatMachO = "macho"
 
 	// MaxArtifactBytes is the largest artifact the built-in readers accept.
 	MaxArtifactBytes int64 = 2 << 30
@@ -49,8 +54,8 @@ var (
 
 // Options configure Analyze.
 type Options struct {
-	// Format is FormatAuto, FormatELF, or FormatPE. The empty string selects
-	// FormatAuto.
+	// Format is FormatAuto, FormatELF, FormatPE, or FormatMachO. The empty
+	// string selects FormatAuto.
 	Format string
 	// ProviderVersion is recorded in provider.version. It is required.
 	ProviderVersion string
@@ -65,7 +70,7 @@ func (o Options) withDefaults() (Options, error) {
 		o.Format = FormatAuto
 	}
 	switch o.Format {
-	case FormatAuto, FormatELF, FormatPE:
+	case FormatAuto, FormatELF, FormatPE, FormatMachO:
 	default:
 		return Options{}, fmt.Errorf("%w: unknown format %q", ErrOptions, o.Format)
 	}
@@ -200,9 +205,39 @@ func observe(r io.ReaderAt, size int64, format, version string) (evidence.Eviden
 		return elfprovider.Observe(r, size, elfprovider.Options{ProviderVersion: version})
 	case FormatPE:
 		return peprovider.Observe(r, size, peprovider.Options{ProviderVersion: version})
+	case FormatMachO:
+		return machoprovider.Observe(r, size, machoprovider.Options{ProviderVersion: version})
 	default:
 		return evidence.Evidence{}, fmt.Errorf("%w: %q", ErrUnsupportedFormat, format)
 	}
+}
+
+// machoMagics lists the four-byte prefixes the Mach-O reader accepts: thin
+// 32-bit and 64-bit images in both byte orders, and universal headers in the
+// standard and byte-swapped forms.
+//
+// 0xcafebabe is also the Java class-file magic. Detection cannot tell them
+// apart from four bytes, so a class file is reported as a Mach-O artifact whose
+// universal header does not parse rather than as an unknown format.
+var machoMagics = [...][4]byte{
+	{0xfe, 0xed, 0xfa, 0xce}, // 32-bit, big-endian
+	{0xfe, 0xed, 0xfa, 0xcf}, // 64-bit, big-endian
+	{0xce, 0xfa, 0xed, 0xfe}, // 32-bit, little-endian
+	{0xcf, 0xfa, 0xed, 0xfe}, // 64-bit, little-endian
+	{0xca, 0xfe, 0xba, 0xbe}, // universal
+	{0xca, 0xfe, 0xba, 0xbf}, // 64-bit universal
+	{0xbe, 0xba, 0xfe, 0xca}, // universal, byte-swapped
+	{0xbf, 0xba, 0xfe, 0xca}, // 64-bit universal, byte-swapped
+}
+
+// isMachOMagic reports whether the first four bytes name a Mach-O artifact.
+func isMachOMagic(magic [4]byte) bool {
+	for _, candidate := range machoMagics {
+		if magic == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 // detect reads the artifact magic and returns the matching format.
@@ -217,6 +252,8 @@ func detect(r io.ReaderAt) (string, error) {
 		return FormatELF, nil
 	case n >= 2 && magic[0] == 'M' && magic[1] == 'Z':
 		return FormatPE, nil
+	case n >= 4 && isMachOMagic(magic):
+		return FormatMachO, nil
 	default:
 		return "", ErrUnsupportedFormat
 	}

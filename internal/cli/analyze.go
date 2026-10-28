@@ -24,13 +24,13 @@ func runAnalyze(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	fs := flag.NewFlagSet("analyze", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	jsonOutput := fs.Bool("json", false, "print the summary as JSON")
-	format := fs.String("format", analyze.FormatAuto, "artifact format: auto, elf, or pe")
+	format := fs.String("format", analyze.FormatAuto, "artifact format: auto, elf, pe, or macho")
 	maxBytes := fs.Int64("max-bytes", 0, "maximum artifact size in bytes; 0 uses the built-in limit")
 	outPath := fs.String("out", "", "write the canonical evidence record to this file")
 	force := fs.Bool("force", false, "overwrite an existing --out file")
 	fs.Usage = func() {
 		_, _ = fmt.Fprintln(stderr,
-			"Usage: ree analyze <path> [--json] [--format auto|elf|pe] [--max-bytes N] [--out FILE] [--force]")
+			"Usage: ree analyze <path> [--json] [--format auto|elf|pe|macho] [--max-bytes N] [--out FILE] [--force]")
 	}
 	if err := fs.Parse(splitAnalyzeArgs(args)); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
