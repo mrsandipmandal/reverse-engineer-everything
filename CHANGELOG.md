@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ree analyze <path>`, the first artifact analysis command: explicit or magic-based ELF and PE selection, text and JSON summary output, canonical record export that refuses to overwrite without `--force`, and exit codes that separate usage errors from operational failures.
 - Bounded Mach-O and universal binary reader foundation: thin 32-bit and 64-bit headers in both byte orders, `FAT_MAGIC` and `FAT_MAGIC_64` slice tables, a validated load command chain, segment and section tables with strict fixed-width names, per-slice failures that do not hide other architectures, section content reads, crafted fixtures, a fuzz target, and ADR 0013.
 - Bounded Mach-O metadata: dylib install and dependency commands, `LC_UUID`, `LC_BUILD_VERSION` and legacy version-min commands, `LC_MAIN`, `LC_SYMTAB` symbols and string tables, and `LC_CODE_SIGNATURE` superblob and blob headers with no signature validation, plus crafted fixtures, a second fuzz target, and ADR 0014.
+- `ree.payload.macho/1` evidence adapter: one record per artifact with every universal slice listed, per-slice status, segments, sections with content digests, dylib and build metadata, entry point, symbols, code signature headers, payload and content budgets, coverage limitations and unknowns, a fuzz target, and ADR 0015.
 
 ## [0.0.2] - 2026-10-27
 
