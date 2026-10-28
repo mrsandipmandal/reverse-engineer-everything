@@ -231,12 +231,61 @@ Out of scope for this phase:
 
 ## Phase 6: archives, application packages, and inventory
 
+Status: in progress. PR1 adds the bounded ZIP, tar, and gzip reader with
+[ADR 0016](adr/0016-archive-reader.md).
+
 Scope:
 
 - ZIP, tar, gzip, APK, ASAR, and plist readers.
-- Safe extraction and inventory.
+- In-memory inventory; entry content is read on demand and never extracted to
+  the filesystem.
 - Path traversal, symlink, and archive-bomb defenses.
 - Inventory, search, and compare over analyzed content, with paginated views.
+
+Acceptance criteria:
+
+- ZIP (stored, deflate, ZIP64, and data descriptors), tar (ustar, PAX, and GNU
+  long names), and gzip (single and concatenated members) produce a
+  deterministic inventory; a structurally invalid header fails with a sentinel
+  error.
+- Absolute paths, drive letters, backslash separators, NUL bytes, names above
+  the configured limit, invalid UTF-8, and parent-directory segments are
+  reported without repair and their content is never read.
+- Symlinks and hardlinks are inventoried with their declared target and are
+  never followed or materialized; no filesystem write is performed.
+- Entry count, ZIP directory bytes, name bytes, extra bytes, PAX bytes, gzip
+  comment bytes, and entry data bytes are bounded by explicit limits; exceeding
+  one produces `Truncated` or a limitation, never silent acceptance.
+- A declared and actual size or checksum mismatch is reported as a limitation
+  or a sentinel error; it is never silently accepted.
+- Nested member detection is limited by depth and an aggregate budget; one
+  failed member does not hide the others.
+- APK reports manifest, dex, resources, and signing block presence, size, and
+  digest without claiming signature validity; ASAR validates header offsets
+  against the artifact; plist decodes XML and binary property lists with depth,
+  count, and byte limits.
+- `ree.payload.archive/1`, `ree.payload.apk/1`, `ree.payload.asar/1`, and
+  `ree.payload.plist/1` projections are deterministic, pass `evidence.Validate`
+  and bundle round-trips, and leave `ree.evidence/1` unchanged.
+- `ree analyze` and `ree_analyze` accept the new formats explicitly and by
+  magic without changing ELF, PE, or Mach-O output; the MCP surface becomes
+  `0.3`.
+- `ree inventory`, `ree search`, and `ree compare` return deterministic
+  paginated views with exit code 2 for invalid usage.
+- New packages reach at least 90 percent statement coverage and each reader has
+  a fuzz target.
+- `gofmt`, `go vet`, `go test`, `go test -race`, `golangci-lint`,
+  `govulncheck`, `actionlint`, the 386 build, and the full CI matrix pass.
+
+Out of scope for this phase:
+
+- filesystem extraction, entry execution or mapping, archive writing, and
+  writing recovered content anywhere;
+- APK binary XML, `resources.arsc` internals, DEX parsing, and signature
+  verification;
+- JavaScript and web artifacts, external engines, and runtime analysis;
+- decompilation, disassembly, a release tag, and any change to the evidence
+  schema.
 
 ## Phase 7: JavaScript and web artifacts
 
