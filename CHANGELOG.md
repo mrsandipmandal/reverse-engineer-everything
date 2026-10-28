@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Bounded Mach-O metadata: dylib install and dependency commands, `LC_UUID`, `LC_BUILD_VERSION` and legacy version-min commands, `LC_MAIN`, `LC_SYMTAB` symbols and string tables, and `LC_CODE_SIGNATURE` superblob and blob headers with no signature validation, plus crafted fixtures, a second fuzz target, and ADR 0014.
 - `ree.payload.macho/1` evidence adapter: one record per artifact with every universal slice listed, per-slice status, segments, sections with content digests, dylib and build metadata, entry point, symbols, code signature headers, payload and content budgets, coverage limitations and unknowns, a fuzz target, and ADR 0015.
 - `ree analyze` and `ree_analyze` Mach-O support: `--format macho`, thin and universal magic detection, `builtin.macho` provider selection, and Mach-O counts summed across slices.
+- Bounded ZIP, tar, and gzip reader foundation: central directory and end-record validation including ZIP64, ustar, PAX, and GNU long names, gzip headers and header CRC, unsafe-path detection, explicit count and byte limits, on-demand content reads with CRC verification, crafted fixtures, a fuzz target, and ADR 0016.
 
 ## [0.0.2] - 2026-10-27
 

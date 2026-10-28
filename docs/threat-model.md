@@ -240,14 +240,24 @@ Residual risk: a consumer that ignores coverage, limitations, slice status, and 
 
 ### Archive bombs and path traversal
 
-Threat: disk exhaustion, writes outside the workspace, symlink escapes.
+Threat: memory or CPU exhaustion from a crafted archive, and a path or link
+that would escape an extraction root.
 
 Mitigations:
 
-- reject absolute paths, `..` traversal, and symlink escapes;
-- cap extracted files, total bytes, and nesting depth;
-- use isolated temporary directories;
-- never follow links outside the extraction root.
+- archive content is never extracted to the filesystem; entry bytes are read in
+  memory on demand and nothing is written;
+- absolute paths, drive letters, backslash separators, NUL bytes, and
+  parent-directory segments are reported without repair, and their content is
+  never read;
+- symlinks and hardlinks are inventoried with their declared target and are
+  never followed;
+- entry counts, ZIP directory sizes, name lengths, extra and PAX fields, and
+  entry content reads are bounded by explicit limits;
+- a decompressed size or CRC-32 that disagrees with the declared value is a
+  sentinel error rather than accepted output;
+- nested parsing depth and aggregate bytes will be bounded, so a member cannot
+  fan out without limit.
 
 ### Command injection
 
