@@ -156,6 +156,12 @@ ELF and PE are available now. Mach-O, archives, application packages,
 JavaScript and web artifacts, external engines, and runtime analysis are later
 phases; see [roadmap.md](roadmap.md).
 
+## MCP
+
+The same analysis is available to MCP clients as `ree_analyze` in surface `0.2`. It accepts `path`, the same `format` and `max_bytes` values, and `include_record`.
+
+The result carries the summary under `summary` and, when `include_record` is true and the sealed record is at most 1 MiB, the exact record under `record`. A larger record is replaced by a `record_omitted` explanation; export it with `ree analyze --out`. The tool returns the same path-free summary as `ree analyze --json`, and failures use messages such as `artifact not found`, `unsupported format`, or `path is not a regular file`.
+
 ## See also
 
 - [ADR 0012](adr/0012-analysis-surface.md) for the use case boundary, summary

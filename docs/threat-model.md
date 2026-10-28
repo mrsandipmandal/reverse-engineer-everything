@@ -228,11 +228,27 @@ Threat: a client sends malformed arguments or a tool contaminates the stdio prot
 
 Mitigations:
 
-- the Phase 0b tools take no arguments, so artifact data cannot reach a handler;
-- the SDK validates tool inputs and outputs against generated JSON Schemas;
+- surface `0.1` tools take no arguments, so artifact data cannot reach a handler; `ree_analyze` is the only argument-taking tool from surface `0.2`;
+- the SDK validates tool inputs and outputs against generated JSON Schemas, including a required artifact path;
 - stdout is reserved for MCP protocol messages;
 - the SDK logger defaults to discard, and CLI errors go to stderr;
-- tool handlers return only version or diagnostic data.
+- tool handlers return version data, diagnostic data, or a bounded analysis summary.
+
+### Analysis surface
+
+Threat: a client asks `ree_analyze` to read an arbitrary path, a device, a fifo, or a very large file, or an analysis result leaks the artifact path or floods the transport.
+
+Mitigations:
+
+- require a regular file, checked with `Stat` before the file is opened, so directories, devices, and pipes are rejected;
+- cap the artifact at 2 GiB or the caller's smaller `max_bytes`;
+- open the file read-only, close it after analysis, and never execute, map, decompress, or modify it;
+- keep the path out of the summary and the record, so a record can be shared without naming the host layout; operational error text may name the path the caller supplied;
+- bound the tool record at 1 MiB and return `record_omitted` above it instead of a partial or truncated record;
+- leave the provider payload and hashing budgets unchanged, so a large or malformed artifact cannot inflate a record past the evidence limits;
+- reject an `--out` path that names the artifact itself, and refuse to overwrite an existing file without `--force`.
+
+Residual risk: the tool reads any regular file the server process can read, under the caller's own operating-system privileges. It is not a sandbox and does not redact artifact content, because the summary and record deliberately describe artifact bytes. Error messages can disclose whether a path exists. A client that asks for `include_record` on a large artifact receives the omission notice instead of the record.
 
 ### Doctor subprocesses
 

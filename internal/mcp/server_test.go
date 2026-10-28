@@ -63,8 +63,8 @@ func TestLegacyProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools() error = %v", err)
 	}
-	if len(tools.Tools) != 2 {
-		t.Fatalf("tools = %d, want 2", len(tools.Tools))
+	if len(tools.Tools) != 3 {
+		t.Fatalf("tools = %d, want 3", len(tools.Tools))
 	}
 }
 
@@ -79,13 +79,14 @@ func TestListTools(t *testing.T) {
 	if result.NextCursor != "" {
 		t.Fatalf("next cursor = %q, want empty", result.NextCursor)
 	}
-	if len(result.Tools) != 2 {
-		t.Fatalf("tools = %d, want 2", len(result.Tools))
+	if len(result.Tools) != 3 {
+		t.Fatalf("tools = %d, want 3", len(result.Tools))
 	}
 
 	want := map[string]bool{
 		VersionToolName: false,
 		DoctorToolName:  false,
+		AnalyzeToolName: false,
 	}
 	for _, tool := range result.Tools {
 		if _, ok := want[tool.Name]; !ok {

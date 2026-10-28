@@ -121,7 +121,10 @@ tag_commit="$(gh api "repos/${repo}/commits/${tag}" --jq .sha)"
 
 note "Checking MCP surface"
 python3 - "$binary" "$version" <<'PY'
+import hashlib
 import json
+import os
+import re
 import subprocess
 import sys
 import threading
@@ -168,6 +171,19 @@ try:
     send({"jsonrpc": "2.0", "method": "notifications/initialized"})
     send({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     tools = receive(2)["result"]["tools"]
+    match = re.search(r"REE MCP surface (\d+\.\d+)", init["instructions"])
+    if not match:
+        raise SystemExit("MCP instructions do not name the surface version: %r" % init["instructions"])
+    surface = match.group(1)
+    analyze = None
+    if surface == "0.2":
+        send({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "ree_analyze", "arguments": {"path": binary}},
+        })
+        analyze = receive(3)["result"]
 finally:
     timeout.cancel()
     process.stdin.close()
@@ -179,10 +195,22 @@ finally:
 assert init["protocolVersion"] == "2025-11-25", init["protocolVersion"]
 assert init["serverInfo"]["name"] == "ree", init["serverInfo"]
 assert init["serverInfo"]["version"] == version, init["serverInfo"]
-assert "0.1" in init["instructions"], init["instructions"]
 names = sorted(tool["name"] for tool in tools)
-assert names == ["ree_doctor", "ree_version"], names
-print("MCP ok:", init["protocolVersion"], ", ".join(names))
+if surface == "0.1":
+    assert names == ["ree_doctor", "ree_version"], names
+elif surface == "0.2":
+    assert names == ["ree_analyze", "ree_doctor", "ree_version"], names
+    assert not analyze.get("isError"), analyze
+    summary = analyze["structuredContent"]["summary"]
+    assert summary["format"] == "elf", summary
+    assert summary["provider_id"] == "builtin.elf", summary
+    with open(binary, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    assert summary["sha256"] == digest, summary["sha256"]
+    assert summary["size"] == os.path.getsize(binary), summary["size"]
+else:
+    raise SystemExit("update scripts/verify-release.sh for MCP surface %s" % surface)
+print("MCP ok:", surface, init["protocolVersion"], ", ".join(names))
 PY
 
 note "All checks passed for $tag"
