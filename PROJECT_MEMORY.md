@@ -1,6 +1,6 @@
 # Project memory
 
-Last updated: 2026-10-29 · Phase 6 closeout, code verified at `e3c16cf` · latest release `v0.0.2`
+Last updated: 2026-10-29 · Phase 6 closeout, code verified at `35b0e8b` · latest release `v0.0.3`
 
 This file is a short, verified snapshot for continuity. The roadmap, changelog, ADRs, and release records remain authoritative for their own content.
 
@@ -9,8 +9,8 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 - Phase 0a, 0b, 0c, Phase 1 (evidence core), Phase 2 (ELF), Phase 3 (PE), Phase 4 (analysis surface), Phase 5 (Mach-O), and Phase 6 (archives, application packages, and inventory) are complete.
 - Phase 2 adds `internal/formats/elf` and `internal/providers/elf`; Phase 3 adds `internal/formats/pe` and `internal/providers/pe`; Phase 4 adds `internal/usecase/analyze`, the `ree analyze` command, and the `ree_analyze` MCP tool, raising the MCP surface to `0.2`; Phase 5 adds `internal/formats/macho` and `internal/providers/macho` and wires `builtin.macho` into both analysis surfaces.
 - Phase 6 adds `internal/formats/archive`, `internal/formats/asar`, `internal/formats/plist`, and `internal/formats/apk` with the `ree.payload.archive/1`, `ree.payload.asar/1`, `ree.payload.plist/1`, and `ree.payload.apk/1` providers, then wires all four into `ree analyze` and `ree_analyze`, adds `internal/usecase/inventory` with the `ree inventory`, `ree search`, and `ree compare` commands, and raises the MCP surface to `0.3`.
-- `v0.0.1` and `v0.0.2` are published and verified; no Phase 2, Phase 3, Phase 4, Phase 5, or Phase 6 release was cut.
-- `main` is clean and protected; CI, CodeQL, and Actionlint are green on `e3c16cf`.
+- `v0.0.1`, `v0.0.2`, and `v0.0.3` are published and verified. `v0.0.3` is the Phase 6 release; see `docs/releases/v0.0.3.md`.
+- `main` is clean and protected; CI, CodeQL, and Actionlint are green on `35b0e8b`.
 
 ## Completed milestones
 
@@ -69,6 +69,9 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 - CLI smoke on `/bin/ls`: `ree analyze` reports `elf`, `builtin.elf/default`, 11,807,104 bytes, 34 sections, 15 segments, and 306 symbols; `--json` is valid and `--out` writes a 2,519,443-byte record with mode 0644 that refuses to overwrite without `--force`.
 - MCP probe rehearsal with the new `scripts/verify-release.sh` logic: `MCP ok: 0.2 2025-11-25 ree_analyze, ree_doctor, ree_version`; the `ree_analyze` summary for the built binary matches its `sha256` and size.
 - Release workflow `v0.0.2`: pass (`40463183950`); `scripts/verify-release.sh v0.0.2`: pass.
+- Release preparation PR #43 pass all 21 checks; merged as `35b0e8b`; the merged commit is green for CI (`40827774153`), CodeQL (`40827774053`), and Actionlint (`40827774036`).
+- Release workflow `v0.0.3`: pass (`40827792762`) on tag commit `35b0e8b`; 14 assets published.
+- `scripts/verify-release.sh v0.0.3` (with `cosign` `v3.1.4`): pass — 12 checksums, cosign bundle, six archive listings, `linux/amd64` binary identity `0.0.3`/`35b0e8b`/`2026-10-29T06:13:35Z`, and MCP surface `0.3` with three tools. See `docs/releases/v0.0.3.md`.
 
 ## Known issues and limitations
 
@@ -102,7 +105,7 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 
 ## Pending work and next action
 
-1. Decide whether Phase 6 gets a release tag (`v0.0.3`); a release needs explicit approval, a verified tree, and `docs/releases/<tag>.md` with recorded evidence.
+1. The `v0.0.3` release is published and verified; `docs/releases/v0.0.3.md` records the evidence, and `scripts/verify-release.sh` accepts MCP surfaces `0.1`, `0.2`, and `0.3`.
 2. Keep the analysis surfaces limited to the providers above until another provider merges.
 3. Do not start a new phase without approved scope, acceptance criteria, and a verification plan.
 
