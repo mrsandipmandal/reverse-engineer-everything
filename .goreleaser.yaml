@@ -85,7 +85,7 @@ release:
   header: |
     Evidence-first reverse engineering for binaries, apps, and artifacts.
 
-    This release ships the `ree` CLI, the stdio MCP server (`ree mcp`, surface 0.1) with `ree_version` and `ree_doctor`, and signed archives for linux, darwin, and windows on amd64 and arm64.
+    This release ships the `ree` CLI with `analyze`, `inventory`, `search`, and `compare`, the stdio MCP server (`ree mcp`, surface 0.3) with `ree_version`, `ree_doctor`, and `ree_analyze` for ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, and property-list artifacts, and signed archives for linux, darwin, and windows on amd64 and arm64.
 
     The full changelog is in [CHANGELOG.md](https://github.com/mrsandipmandal/reverse-engineer-everything/blob/{{ .Tag }}/CHANGELOG.md).
   footer: |
