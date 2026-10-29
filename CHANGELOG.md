@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+## [0.0.3] - 2026-10-29
+
+### Added
+
 - RFC 8785 canonical JSON package with byte and depth limits, SHA-256 digests, conformance tests, and a fuzz target.
 - `ree.evidence/1` schema with strict canonical-only decoding, payload integrity digests, explicit coverage and unknowns, size and count limits, golden tests, and a fuzz target.
 - `ree.bundle/1` deterministic export and in-memory import with record-digest ordering, duplicate and order rejection, a bundle digest, tamper tests, and a fuzz target.
@@ -59,6 +63,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Tag-driven GoReleaser workflow with archives, checksums, SBOMs, and keyless cosign signing.
 - `scripts/verify-release.sh` for post-release artifact, signature, binary, and MCP verification.
 
-[Unreleased]: https://github.com/mrsandipmandal/reverse-engineer-everything/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/mrsandipmandal/reverse-engineer-everything/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/mrsandipmandal/reverse-engineer-everything/releases/tag/v0.0.3
 [0.0.2]: https://github.com/mrsandipmandal/reverse-engineer-everything/releases/tag/v0.0.2
 [0.0.1]: https://github.com/mrsandipmandal/reverse-engineer-everything/releases/tag/v0.0.1
