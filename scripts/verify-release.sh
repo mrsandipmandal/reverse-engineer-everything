@@ -176,7 +176,7 @@ try:
         raise SystemExit("MCP instructions do not name the surface version: %r" % init["instructions"])
     surface = match.group(1)
     analyze = None
-    if surface == "0.2":
+    if surface in ("0.2", "0.3"):
         send({
             "jsonrpc": "2.0",
             "id": 3,
@@ -198,7 +198,7 @@ assert init["serverInfo"]["version"] == version, init["serverInfo"]
 names = sorted(tool["name"] for tool in tools)
 if surface == "0.1":
     assert names == ["ree_doctor", "ree_version"], names
-elif surface == "0.2":
+elif surface in ("0.2", "0.3"):
     assert names == ["ree_analyze", "ree_doctor", "ree_version"], names
     assert not analyze.get("isError"), analyze
     summary = analyze["structuredContent"]["summary"]
