@@ -10,13 +10,13 @@ artifact content, and it never contacts a network service.
 ## Usage
 
 ```text
-ree analyze <path> [--json] [--format auto|elf|pe|macho] [--max-bytes N] [--out FILE] [--force]
+ree analyze <path> [--json] [--format auto|elf|pe|macho|zip|tar|gzip|apk|asar|plist] [--max-bytes N] [--out FILE] [--force]
 ```
 
 | Flag | Meaning |
 |---|---|
 | `--json` | Print the summary as indented JSON on stdout. |
-| `--format` | Select the provider: `auto` (default), `elf`, `pe`, or `macho`. The value is case-insensitive. `macho` reads both thin images and universal binaries. |
+| `--format` | Select the provider: `auto` (default), `elf`, `pe`, `macho`, `zip`, `tar`, `gzip`, `apk`, `asar`, or `plist`. The value is case-insensitive. `macho` reads both thin images and universal binaries; `zip`, `tar`, and `gzip` are read by the archive provider. |
 | `--max-bytes` | Reject artifacts above this size. `0` uses the built-in limit; larger values are clamped to it. |
 | `--out` | Write the canonical evidence record to this file. |
 | `--force` | Allow `--out` to replace an existing file. Requires `--out`. |
@@ -158,19 +158,29 @@ report.
 
 ## Supported formats
 
-ELF, PE, and Mach-O are available now. A Mach-O provider accepts thin 32-bit
-and 64-bit images in both byte orders and universal binaries; detection
-recognises their magics, and an explicit `--format macho` reads a file whose
-magic is unusual. `0xcafebabe` is also the Java class-file magic, so a class
+ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, and property lists are available.
+A Mach-O provider accepts thin 32-bit and 64-bit images in both byte orders and
+universal binaries. `0xcafebabe` is also the Java class-file magic, so a class
 file is reported as a Mach-O artifact whose universal header does not parse
 rather than as an unknown format.
 
-Archives, application packages, JavaScript and web artifacts, external
-engines, and runtime analysis are later phases; see [roadmap.md](roadmap.md).
+Auto detection reads a 512-byte prefix. A ZIP with a root file named exactly
+`AndroidManifest.xml` is an APK; a ZIP without one is a ZIP. A Chromium Pickle
+header is an ASAR, a `bplist` or property-list XML prefix is a plist, `ustar` at
+offset 257 is a tar, and the gzip magic is gzip. An explicit `--format` never
+falls back: `--format zip` on a tar artifact, or `--format apk` on a ZIP without
+a manifest, is an error.
+
+Archive, package, and property-list records have entry lists. `ree inventory`,
+`ree search`, and `ree compare` page, filter, and diff them; see
+[inventory.md](inventory.md).
+
+JavaScript and web artifacts, external engines, and runtime analysis are later
+phases; see [roadmap.md](roadmap.md).
 
 ## MCP
 
-The same analysis is available to MCP clients as `ree_analyze` in surface `0.2`. It accepts `path`, the same `format` and `max_bytes` values, and `include_record`.
+The same analysis is available to MCP clients as `ree_analyze` in surface `0.3`. It accepts `path`, the same `format` and `max_bytes` values, and `include_record`, and covers every format above. Inventory views are CLI-only; a client that needs them can request the record with `include_record`.
 
 The result carries the summary under `summary` and, when `include_record` is true and the sealed record is at most 1 MiB, the exact record under `record`. A larger record is replaced by a `record_omitted` explanation; export it with `ree analyze --out`. The tool returns the same path-free summary as `ree analyze --json`, and failures use messages such as `artifact not found`, `unsupported format`, or `path is not a regular file`.
 
@@ -180,4 +190,8 @@ The result carries the summary under `summary` and, when `include_record` is tru
   contract, and error taxonomy.
 - [evidence.md](evidence.md) for the `ree.evidence/1` schema.
 - [payload-elf.md](payload-elf.md), [payload-pe.md](payload-pe.md), and
-  [payload-macho.md](payload-macho.md) for the provider wire formats.
+  [payload-macho.md](payload-macho.md) for the executable provider wire formats;
+- [payload-archive.md](payload-archive.md), [payload-apk.md](payload-apk.md),
+  [payload-asar.md](payload-asar.md), and [payload-plist.md](payload-plist.md)
+  for the archive, package, and property-list payloads;
+- [inventory.md](inventory.md) for the inventory, search, and compare commands.

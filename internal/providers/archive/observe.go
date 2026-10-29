@@ -55,6 +55,10 @@ type Options struct {
 	// Zero selects DefaultNestedMembers; values above MaxNestedMembers are
 	// clamped.
 	NestedMembers int
+	// Container selects the accepted container: "zip", "tar", or "gzip". The
+	// empty string accepts whatever the reader detects. A mismatch is an error,
+	// so an explicit format selection is never silently reinterpreted.
+	Container string
 }
 
 func (o Options) withDefaults() Options {
@@ -111,6 +115,10 @@ func Observe(r io.ReaderAt, size int64, opts Options) (evidence.Evidence, error)
 	artifact, err := rearchive.ParseWithLimits(r, size, opts.Limits)
 	if err != nil {
 		return evidence.Evidence{}, fmt.Errorf("archive provider: parse: %w", err)
+	}
+	if opts.Container != "" && artifact.Container.String() != opts.Container {
+		return evidence.Evidence{}, fmt.Errorf("%w: artifact is %s, want %s",
+			ErrOptions, artifact.Container, opts.Container)
 	}
 	digest, err := hashArtifact(r, size)
 	if err != nil {

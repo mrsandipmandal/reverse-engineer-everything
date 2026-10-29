@@ -31,6 +31,12 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "analyze":
 		return runAnalyze(ctx, args[1:], stdout, stderr)
+	case "inventory":
+		return runInventory(ctx, args[1:], stdout, stderr)
+	case "search":
+		return runSearch(ctx, args[1:], stdout, stderr)
+	case "compare":
+		return runCompare(ctx, args[1:], stdout, stderr)
 	case "version":
 		return runVersion(ctx, args[1:], stdout, stderr)
 	case "doctor":
@@ -53,10 +59,13 @@ Usage: ree <command> [options]
 
 Commands:
   analyze   Analyze one local artifact and emit evidence
+  inventory List the entries of an archive, package, or property list
+  search    Filter an inventory by name
+  compare   Compare the inventories of two artifacts
   version   Print version information
   doctor    Check local tools and environment
   mcp       Run the MCP server over stdio
   help      Show this help
 
-Run "ree analyze --json", "ree version --json", or "ree doctor --json" for machine-readable output.`)
+Run any command with --json for machine-readable output.`)
 }

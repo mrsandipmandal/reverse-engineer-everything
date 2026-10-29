@@ -189,6 +189,117 @@ func assertRecordRoundTrip(t *testing.T, result Result) {
 	}
 }
 
+func TestAnalyzeZIP(t *testing.T) {
+	path := writeArtifact(t, "sample.zip", minimalZIP(t))
+
+	result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	summary := result.Summary
+	if summary.Format != FormatZIP || summary.ProviderID != "builtin.archive" {
+		t.Fatalf("format = %q provider = %q", summary.Format, summary.ProviderID)
+	}
+	if summary.Coverage != string(evidence.CoverageComplete) {
+		t.Errorf("coverage = %q; limitations=%v unknowns=%v",
+			summary.Coverage, summary.Limitations, summary.Unknowns)
+	}
+	if summary.Counts.Entries != 1 {
+		t.Errorf("entries = %d, want 1", summary.Counts.Entries)
+	}
+	assertRecordRoundTrip(t, result)
+}
+
+func TestAnalyzeTarAndGZip(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   string
+		artifact []byte
+	}{
+		{name: "tar", format: FormatTar, artifact: minimalTar(t)},
+		{name: "gzip", format: FormatGZip, artifact: minimalGZip(t)},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path := writeArtifact(t, "sample."+test.name, test.artifact)
+			result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+			if err != nil {
+				t.Fatalf("Analyze: %v", err)
+			}
+			if result.Summary.Format != test.format || result.Summary.ProviderID != "builtin.archive" {
+				t.Fatalf("format = %q provider = %q", result.Summary.Format, result.Summary.ProviderID)
+			}
+			if result.Summary.Counts.Entries != 1 {
+				t.Errorf("entries = %d, want 1", result.Summary.Counts.Entries)
+			}
+			assertRecordRoundTrip(t, result)
+		})
+	}
+}
+
+func TestAnalyzeAPK(t *testing.T) {
+	path := writeArtifact(t, "sample.apk", minimalAPK(t))
+
+	result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	summary := result.Summary
+	if summary.Format != FormatAPK || summary.ProviderID != "builtin.apk" {
+		t.Fatalf("format = %q provider = %q", summary.Format, summary.ProviderID)
+	}
+	if summary.Coverage != string(evidence.CoverageComplete) {
+		t.Errorf("coverage = %q; limitations=%v unknowns=%v",
+			summary.Coverage, summary.Limitations, summary.Unknowns)
+	}
+	if summary.Counts.Entries != 2 || summary.Counts.DEX != 1 {
+		t.Errorf("counts = %+v, want 2 entries and 1 dex", summary.Counts)
+	}
+	assertRecordRoundTrip(t, result)
+}
+
+func TestAnalyzeASAR(t *testing.T) {
+	path := writeArtifact(t, "sample.asar", minimalASAR(t))
+
+	result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	summary := result.Summary
+	if summary.Format != FormatASAR || summary.ProviderID != "builtin.asar" {
+		t.Fatalf("format = %q provider = %q", summary.Format, summary.ProviderID)
+	}
+	if summary.Coverage != string(evidence.CoverageComplete) {
+		t.Errorf("coverage = %q; limitations=%v unknowns=%v",
+			summary.Coverage, summary.Limitations, summary.Unknowns)
+	}
+	if summary.Counts.Entries != 1 {
+		t.Errorf("entries = %d, want 1", summary.Counts.Entries)
+	}
+	assertRecordRoundTrip(t, result)
+}
+
+func TestAnalyzePlist(t *testing.T) {
+	path := writeArtifact(t, "sample.plist", minimalPlistXML())
+
+	result, err := Analyze(context.Background(), path, Options{ProviderVersion: testVersion})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	summary := result.Summary
+	if summary.Format != FormatPlist || summary.ProviderID != "builtin.plist" {
+		t.Fatalf("format = %q provider = %q", summary.Format, summary.ProviderID)
+	}
+	if summary.Coverage != string(evidence.CoverageComplete) {
+		t.Errorf("coverage = %q; limitations=%v unknowns=%v",
+			summary.Coverage, summary.Limitations, summary.Unknowns)
+	}
+	if summary.Counts.Objects != 5 {
+		t.Errorf("objects = %d, want 5", summary.Counts.Objects)
+	}
+	assertRecordRoundTrip(t, result)
+}
+
 func TestAnalyzeExplicitFormat(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -530,9 +641,15 @@ func TestDetect(t *testing.T) {
 		{name: "fat macho", data: minimalFatMachO(minimalMachO64()), want: FormatMachO},
 		{name: "fat macho 64", data: []byte{0xca, 0xfe, 0xba, 0xbf, 0, 0, 0, 0}, want: FormatMachO},
 		{name: "swapped fat macho", data: []byte{0xbe, 0xba, 0xfe, 0xca, 0, 0, 0, 0}, want: FormatMachO},
+		{name: "zip", data: minimalZIP(t), want: FormatZIP},
+		{name: "apk", data: minimalAPK(t), want: FormatAPK},
+		{name: "asar", data: minimalASAR(t), want: FormatASAR},
+		{name: "plist xml", data: minimalPlistXML(), want: FormatPlist},
+		{name: "tar", data: minimalTar(t), want: FormatTar},
+		{name: "gzip", data: minimalGZip(t), want: FormatGZip},
 		{name: "three bytes", data: []byte("\x7fEL"), wantErr: true},
 		{name: "empty", data: nil, wantErr: true},
-		{name: "text", data: []byte("PK\x03\x04"), wantErr: true},
+		{name: "text", data: []byte("plain text, no magic"), wantErr: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -543,7 +660,7 @@ func TestDetect(t *testing.T) {
 			}
 			defer func() { _ = file.Close() }()
 
-			got, err := detect(file)
+			got, err := detect(file, int64(len(tc.data)))
 			if tc.wantErr {
 				if !errors.Is(err, ErrUnsupportedFormat) {
 					t.Fatalf("error = %v, want ErrUnsupportedFormat", err)
@@ -568,7 +685,7 @@ func (r errReader) ReadAt([]byte, int64) (int, error) { return 0, r.err }
 
 func TestDetectReadError(t *testing.T) {
 	want := errors.New("device gone")
-	if _, err := detect(errReader{err: want}); !errors.Is(err, want) {
+	if _, err := detect(errReader{err: want}, 0); !errors.Is(err, want) {
 		t.Fatalf("error = %v, want %v", err, want)
 	}
 }

@@ -1,15 +1,18 @@
 // Package analyze selects a built-in provider for a local artifact and returns
 // sealed ree.evidence/1 evidence with a deterministic summary.
 //
-// Analyze inspects only the artifact bytes. It detects ELF, PE, or Mach-O and
-// universal binaries by magic, delegates the read to the matching provider, and
-// never executes, maps, decompresses, or writes artifact content. The artifact
-// path is used for file system access only and never enters the evidence record
-// or the summary.
+// Analyze inspects only the artifact bytes. It detects ELF, PE, Mach-O,
+// universal binaries, ZIP, tar, gzip, Android packages, Electron ASAR archives,
+// and Apple property lists by magic, delegates the read to the matching
+// provider, and never executes, maps, decompresses, or writes artifact content.
+// The artifact path is used for file system access only and never enters the
+// evidence record or the summary.
 package analyze
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -18,9 +21,16 @@ import (
 
 	"github.com/mrsandipmandal/reverse-engineer-everything/internal/contracts/canonical"
 	"github.com/mrsandipmandal/reverse-engineer-everything/internal/contracts/evidence"
+	reapk "github.com/mrsandipmandal/reverse-engineer-everything/internal/formats/apk"
+	rearchive "github.com/mrsandipmandal/reverse-engineer-everything/internal/formats/archive"
+	replist "github.com/mrsandipmandal/reverse-engineer-everything/internal/formats/plist"
+	apkprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/apk"
+	archiveprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/archive"
+	asarprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/asar"
 	elfprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/elf"
 	machoprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/macho"
 	peprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/pe"
+	plistprovider "github.com/mrsandipmandal/reverse-engineer-everything/internal/providers/plist"
 )
 
 const (
@@ -33,9 +43,27 @@ const (
 	// FormatMachO selects the built-in Mach-O provider. One provider reads
 	// both thin images and universal binaries.
 	FormatMachO = "macho"
+	// FormatZIP selects the built-in archive provider for a ZIP container.
+	FormatZIP = "zip"
+	// FormatTar selects the built-in archive provider for a tar container.
+	FormatTar = "tar"
+	// FormatGZip selects the built-in archive provider for a gzip container.
+	FormatGZip = "gzip"
+	// FormatAPK selects the built-in Android package provider, which reads the
+	// ZIP container and requires a root AndroidManifest.xml.
+	FormatAPK = "apk"
+	// FormatASAR selects the built-in Electron ASAR provider.
+	FormatASAR = "asar"
+	// FormatPlist selects the built-in Apple property list provider, which
+	// reads both the binary and XML representations.
+	FormatPlist = "plist"
 
 	// MaxArtifactBytes is the largest artifact the built-in readers accept.
 	MaxArtifactBytes int64 = 2 << 30
+
+	// detectionBytes is the longest magic prefix a detector needs. Tar stores
+	// its `ustar` magic at offset 257.
+	detectionBytes = 512
 )
 
 // Sentinel errors. Errors returned by Analyze wrap one of these values unless a
@@ -70,7 +98,8 @@ func (o Options) withDefaults() (Options, error) {
 		o.Format = FormatAuto
 	}
 	switch o.Format {
-	case FormatAuto, FormatELF, FormatPE, FormatMachO:
+	case FormatAuto, FormatELF, FormatPE, FormatMachO,
+		FormatZIP, FormatTar, FormatGZip, FormatAPK, FormatASAR, FormatPlist:
 	default:
 		return Options{}, fmt.Errorf("%w: unknown format %q", ErrOptions, o.Format)
 	}
@@ -98,6 +127,18 @@ type Counts struct {
 	Exports      int `json:"exports"`
 	Resources    int `json:"resources"`
 	Certificates int `json:"certificates"`
+
+	// Entries counts container entries: archive members, ASAR entries, or APK
+	// entries, including members of nested containers.
+	Entries int `json:"entries,omitempty"`
+	// Objects counts property list objects.
+	Objects int `json:"objects,omitempty"`
+	// DEX counts Android DEX files.
+	DEX int `json:"dex,omitempty"`
+	// NativeLibraries counts Android native libraries.
+	NativeLibraries int `json:"native_libraries,omitempty"`
+	// SigningPairs counts APK Signing Block pairs.
+	SigningPairs int `json:"signing_pairs,omitempty"`
 }
 
 // Summary is the deterministic, path-free description of one analysis.
@@ -160,7 +201,7 @@ func Analyze(ctx context.Context, path string, opts Options) (Result, error) {
 
 	format := opts.Format
 	if format == FormatAuto {
-		format, err = detect(file)
+		format, err = detect(file, size)
 		if err != nil {
 			return Result{}, err
 		}
@@ -207,6 +248,17 @@ func observe(r io.ReaderAt, size int64, format, version string) (evidence.Eviden
 		return peprovider.Observe(r, size, peprovider.Options{ProviderVersion: version})
 	case FormatMachO:
 		return machoprovider.Observe(r, size, machoprovider.Options{ProviderVersion: version})
+	case FormatZIP, FormatTar, FormatGZip:
+		return archiveprovider.Observe(r, size, archiveprovider.Options{
+			ProviderVersion: version,
+			Container:       format,
+		})
+	case FormatAPK:
+		return apkprovider.Observe(r, size, apkprovider.Options{ProviderVersion: version})
+	case FormatASAR:
+		return asarprovider.Observe(r, size, asarprovider.Options{ProviderVersion: version})
+	case FormatPlist:
+		return plistprovider.Observe(r, size, plistprovider.Options{ProviderVersion: version})
 	default:
 		return evidence.Evidence{}, fmt.Errorf("%w: %q", ErrUnsupportedFormat, format)
 	}
@@ -240,21 +292,67 @@ func isMachOMagic(magic [4]byte) bool {
 	return false
 }
 
-// detect reads the artifact magic and returns the matching format.
-func detect(r io.ReaderAt) (string, error) {
-	var magic [4]byte
-	n, err := r.ReadAt(magic[:], 0)
+// detect reads the artifact prefix and returns the matching format.
+//
+// The prefix is read once and reused by every detector. A ZIP is probed for a
+// root AndroidManifest.xml through the bounded APK reader so a package is
+// labelled `apk`; a ZIP without one, or one the APK reader rejects, stays a
+// ZIP and is explained by the archive provider.
+func detect(r io.ReaderAt, size int64) (string, error) {
+	prefix := make([]byte, detectionBytes)
+	n, err := r.ReadAt(prefix, 0)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return "", fmt.Errorf("analyze: read artifact magic: %w", err)
 	}
-	switch {
-	case n >= 4 && magic[0] == 0x7f && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F':
+	prefix = prefix[:n]
+
+	if n >= 4 && prefix[0] == 0x7f && prefix[1] == 'E' && prefix[2] == 'L' && prefix[3] == 'F' {
 		return FormatELF, nil
-	case n >= 2 && magic[0] == 'M' && magic[1] == 'Z':
-		return FormatPE, nil
-	case n >= 4 && isMachOMagic(magic):
-		return FormatMachO, nil
-	default:
-		return "", ErrUnsupportedFormat
 	}
+	if n >= 2 && prefix[0] == 'M' && prefix[1] == 'Z' {
+		return FormatPE, nil
+	}
+	if n >= 4 {
+		var magic [4]byte
+		copy(magic[:], prefix[:4])
+		if isMachOMagic(magic) {
+			return FormatMachO, nil
+		}
+	}
+	if isASARHeader(prefix) {
+		return FormatASAR, nil
+	}
+	switch rearchive.Detect(prefix) {
+	case rearchive.ContainerZIP:
+		if _, err := reapk.Parse(r, size); err == nil {
+			return FormatAPK, nil
+		}
+		return FormatZIP, nil
+	case rearchive.ContainerTar:
+		return FormatTar, nil
+	case rearchive.ContainerGZIP:
+		return FormatGZip, nil
+	}
+	if format := replist.Detect(prefix); format != replist.FormatUnknown {
+		// plist.Detect only looks for a leading `<`. Requiring the `plist`
+		// token keeps an unrelated XML document out of the plist provider.
+		if format == replist.FormatBinary || bytes.Contains(prefix, []byte("plist")) {
+			return FormatPlist, nil
+		}
+	}
+	return "", ErrUnsupportedFormat
+}
+
+// isASARHeader reports whether prefix looks like a Chromium Pickle header: a
+// four-byte payload size of 4 followed by a plausible header size.
+func isASARHeader(prefix []byte) bool {
+	const asarMaxHeaderBytes = 64 << 20
+	if len(prefix) < 8 {
+		return false
+	}
+	if binary.LittleEndian.Uint32(prefix[0:4]) != 4 {
+		return false
+	}
+	header := binary.LittleEndian.Uint32(prefix[4:8])
+	return header >= 8 && header <= asarMaxHeaderBytes
 }

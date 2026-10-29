@@ -248,4 +248,16 @@ The fifth increment adds Android packages:
 - the APK Signing Block is located through the central directory, validated against its own declared size and the directory offset, and inventoried pair by pair with known scheme names and value digests; signature validity is never claimed;
 - `internal/providers/apk` returns one `ree.evidence/1` record per artifact with a `ree.payload.apk/1` payload, decimal-string 64-bit values, entry-kind counts, and a payload budget over the ZIP entries.
 
-Binary `AndroidManifest.xml`, `resources.arsc`, DEX parsing, and signature verification are out of scope. See [ADR 0020](adr/0020-apk-reader.md) for the decisions and [payload-apk.md](payload-apk.md) for the wire format. Nested detection inside ASAR entries, wiring the providers into the analysis surface, and archive inventory commands are deferred to the final Phase 6 increment.
+Binary `AndroidManifest.xml`, `resources.arsc`, DEX parsing, and signature verification are out of scope. See [ADR 0020](adr/0020-apk-reader.md) for the decisions and [payload-apk.md](payload-apk.md) for the wire format.
+
+The final increment wires Phase 6 into the surfaces and adds inventory views:
+
+- `internal/usecase/analyze` gains `zip`, `tar`, `gzip`, `apk`, `asar`, and `plist`. The three container formats share the archive provider and carry the expected container, so an explicit format that does not match is an options error rather than a mislabelled analysis; auto detection probes a ZIP with the APK reader and falls back to `zip` when the root manifest is absent;
+- `Counts` gains `entries`, `objects`, `dex`, `native_libraries`, and `signing_pairs`, all `omitempty`, so the ELF, PE, and Mach-O summary keeps its shape;
+- `internal/usecase/inventory` projects one sealed record into a flat, ordered entry list. Nested archive members are flattened at depth one, a record limitation is copied to the collection, and ELF, PE, and Mach-O payloads are rejected because they have no entry list;
+- `ree inventory`, `ree search`, and `ree compare` page (`--offset`, `--limit`, default 50, maximum 1000), filter case-insensitively, and diff by name with a `#<index>` fallback. Text and JSON output share one view, and exit code `2` separates invalid usage from operational failure;
+- the MCP surface moves to `0.3` and `ree_analyze` accepts every format above. Inventory views stay CLI-only, because a client can request the record and page it locally.
+
+Views are a function of the record, not of the artifact: no command re-parses the file it just analyzed, so a bundle round-trip preserves the inventory. See [ADR 0021](adr/0021-phase6-wiring.md) for the decisions, [inventory.md](inventory.md) for the command surface, and [analyze.md](analyze.md) for format selection.
+
+Nested detection inside ASAR entries, binary `AndroidManifest.xml`, `resources.arsc`, and DEX decoding, signature verification, filesystem extraction, archive writing, and any change to `ree.evidence/1` remain out of scope.
