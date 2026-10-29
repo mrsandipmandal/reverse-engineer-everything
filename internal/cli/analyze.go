@@ -24,13 +24,13 @@ func runAnalyze(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	fs := flag.NewFlagSet("analyze", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	jsonOutput := fs.Bool("json", false, "print the summary as JSON")
-	format := fs.String("format", analyze.FormatAuto, "artifact format: auto, elf, pe, or macho")
+	format := fs.String("format", analyze.FormatAuto, "artifact format: auto, elf, pe, macho, zip, tar, gzip, apk, asar, or plist")
 	maxBytes := fs.Int64("max-bytes", 0, "maximum artifact size in bytes; 0 uses the built-in limit")
 	outPath := fs.String("out", "", "write the canonical evidence record to this file")
 	force := fs.Bool("force", false, "overwrite an existing --out file")
 	fs.Usage = func() {
 		_, _ = fmt.Fprintln(stderr,
-			"Usage: ree analyze <path> [--json] [--format auto|elf|pe|macho] [--max-bytes N] [--out FILE] [--force]")
+			"Usage: ree analyze <path> [--json] [--format auto|elf|pe|macho|zip|tar|gzip|apk|asar|plist] [--max-bytes N] [--out FILE] [--force]")
 	}
 	if err := fs.Parse(splitAnalyzeArgs(args)); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -92,16 +92,16 @@ func runAnalyze(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	return ExitOK
 }
 
-// splitAnalyzeArgs moves flags ahead of the positional path so that
-// "ree analyze artifact --json" and "ree analyze --json artifact" behave the
-// same. The standard flag package stops parsing at the first positional
-// argument.
+// splitAnalyzeArgs moves analyze flags ahead of the positional path.
 func splitAnalyzeArgs(args []string) []string {
-	valueFlags := map[string]struct{}{
-		"-format": {}, "--format": {},
-		"-max-bytes": {}, "--max-bytes": {},
-		"-out": {}, "--out": {},
-	}
+	return splitFlags(args, valueFlags("format", "max-bytes", "out"))
+}
+
+// splitFlags moves flags ahead of the positional arguments so that
+// "ree inventory path --json" and "ree inventory --json path" behave the same.
+// The standard flag package stops parsing at the first positional argument.
+// valueFlags names the flags whose value is the next argument.
+func splitFlags(args []string, valueFlags map[string]struct{}) []string {
 	flags := make([]string, 0, len(args))
 	positional := make([]string, 0, 1)
 	for i := 0; i < len(args); i++ {

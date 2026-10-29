@@ -1,7 +1,12 @@
 package analyze
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"bytes"
+	"compress/gzip"
 	"encoding/binary"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -111,4 +116,120 @@ func writeArtifact(t testing.TB, name string, data []byte) string {
 func writeTempPath(t testing.TB, name string) string {
 	t.Helper()
 	return filepath.Join(t.TempDir(), name)
+}
+
+// minimalZIP returns a stored-method ZIP archive with one text file.
+func minimalZIP(t testing.TB) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	writer := zip.NewWriter(&buf)
+	file, err := writer.CreateHeader(&zip.FileHeader{Name: "hello.txt", Method: zip.Store})
+	if err != nil {
+		t.Fatalf("create zip member: %v", err)
+	}
+	if _, err := file.Write([]byte("hi")); err != nil {
+		t.Fatalf("write zip member: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close zip: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// minimalAPK returns a ZIP package with the two members that identify an
+// Android package. Neither member is decoded, so their content is arbitrary.
+func minimalAPK(t testing.TB) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	writer := zip.NewWriter(&buf)
+	for name, body := range map[string][]byte{
+		"AndroidManifest.xml": {0x03, 0x00, 0x08, 0x00},
+		"classes.dex":         []byte("dex\n035\x00"),
+	} {
+		file, err := writer.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store})
+		if err != nil {
+			t.Fatalf("create apk member %q: %v", name, err)
+		}
+		if _, err := file.Write(body); err != nil {
+			t.Fatalf("write apk member %q: %v", name, err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close apk: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// minimalTar returns a ustar archive with one text file.
+func minimalTar(t testing.TB) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	writer := tar.NewWriter(&buf)
+	body := []byte("hi")
+	if err := writer.WriteHeader(&tar.Header{
+		Name:     "hello.txt",
+		Mode:     0o644,
+		Size:     int64(len(body)),
+		Typeflag: tar.TypeReg,
+	}); err != nil {
+		t.Fatalf("write tar header: %v", err)
+	}
+	if _, err := writer.Write(body); err != nil {
+		t.Fatalf("write tar body: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close tar: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// minimalGZip returns a single-member gzip stream.
+func minimalGZip(t testing.TB) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	writer := gzip.NewWriter(&buf)
+	writer.Name = "hello.txt"
+	if _, err := writer.Write([]byte("hi")); err != nil {
+		t.Fatalf("write gzip body: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close gzip: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// minimalASAR returns an ASAR with one packed file. The directory is padded to
+// a four-byte boundary, as the Chromium Pickle writer does.
+func minimalASAR(t testing.TB) []byte {
+	t.Helper()
+	directory, err := json.Marshal(map[string]any{
+		"files": map[string]any{"a.txt": map[string]any{"size": 5, "offset": 0}},
+	})
+	if err != nil {
+		t.Fatalf("marshal asar directory: %v", err)
+	}
+	aligned := (len(directory) + 3) / 4 * 4
+	var buf bytes.Buffer
+	var fixed [16]byte
+	order := binary.LittleEndian
+	order.PutUint32(fixed[0:], 4)
+	order.PutUint32(fixed[4:], uint32(8+aligned))
+	order.PutUint32(fixed[8:], uint32(aligned))
+	order.PutUint32(fixed[12:], uint32(len(directory)))
+	buf.Write(fixed[:])
+	buf.Write(directory)
+	buf.Write(make([]byte, aligned-len(directory)))
+	buf.WriteString("hello")
+	return buf.Bytes()
+}
+
+// minimalPlistXML returns an XML property list with a dictionary root.
+func minimalPlistXML() []byte {
+	return []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+	<key>name</key><string>demo</string>
+	<key>count</key><integer>3</integer>
+</dict>
+</plist>`)
 }

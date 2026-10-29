@@ -6,7 +6,7 @@
 
 **Evidence-first reverse engineering for binaries, apps, and artifacts.**
 
-> Status: pre-alpha. `ree analyze` reads ELF, PE, and Mach-O artifacts into sealed evidence with a path-free summary. The MCP surface still exposes build identity and local diagnostics only.
+> Status: pre-alpha. `ree analyze` reads ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, and property lists into sealed evidence with a path-free summary, and `ree inventory`, `ree search`, and `ree compare` page and diff the entry lists. The MCP surface exposes build identity, local diagnostics, and `ree_analyze` at version `0.3`.
 
 ## Why
 
@@ -44,23 +44,26 @@ ree version
 ree version --json
 ree analyze ./artifact
 ree analyze ./artifact --json
+ree inventory ./bundle.zip
+ree search ./bundle.zip --query lib
+ree compare ./old.zip ./new.zip
 ree doctor
 ree doctor --json
 ree mcp
 ree help
 ```
 
-`ree analyze` reads one local ELF, PE, or Mach-O artifact, selects the built-in provider by magic, and prints a path-free summary or emits the sealed `ree.evidence/1` record with `--out`. It is read-only and never executes artifact content. See [docs/analyze.md](docs/analyze.md).
+`ree analyze` reads one local ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, or plist artifact, selects the built-in provider by magic, and prints a path-free summary or emits the sealed `ree.evidence/1` record with `--out`. It is read-only and never executes artifact content. `ree inventory`, `ree search`, and `ree compare` page, filter, and diff the entry lists of archives, packages, and property lists. See [docs/analyze.md](docs/analyze.md) and [docs/inventory.md](docs/inventory.md).
 
 `ree doctor` reports whether the local tools used for development and releases are available. Missing optional tools do not fail the command; the JSON form is intended for automation.
 
 ## MCP
 
-`ree mcp` serves the REE-native MCP surface over stdin/stdout. Surface `0.2` exposes:
+`ree mcp` serves the REE-native MCP surface over stdin/stdout. Surface `0.3` exposes:
 
 - `ree_version`: the same build identity as `ree version --json`;
 - `ree_doctor`: local tool and environment diagnostics;
-- `ree_analyze`: read-only analysis of one local ELF, PE, or Mach-O artifact. It returns the same path-free summary as `ree analyze --json` and, with `include_record`, the sealed `ree.evidence/1` record when it is at most 1 MiB.
+- `ree_analyze`: read-only analysis of one local ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, or plist artifact. It returns the same path-free summary as `ree analyze --json` and, with `include_record`, the sealed `ree.evidence/1` record when it is at most 1 MiB.
 
 It supports MCP protocol versions `2024-11-05` through `2026-07-28`, including stateless discovery. `ree_analyze` reads only the regular file the caller names, never executes, modifies, or uploads an artifact, and replaces a record above the tool limit with a `record_omitted` explanation; `ree analyze --out` exports a large record. Stdout carries MCP protocol messages only; logs and errors go to stderr.
 

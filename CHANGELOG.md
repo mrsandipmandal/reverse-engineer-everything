@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ree.payload.plist/1` evidence provider: one `ree.evidence/1` record per property list with the artifact and every object projected, decimal-string 64-bit values, payload budgets, and a determinism test.
 - Bounded APK reader: ZIP container and root-manifest identification, structural classification of manifests, DEX files, the resource table, native libraries, resources, assets, and signature files, SHA-256 digests for manifest, DEX, and resource content under per-entry and aggregate limits, APK Signing Block validation with scheme names and pair digests, a fuzz target, and ADR 0020.
 - `ree.payload.apk/1` evidence provider: one `ree.evidence/1` record per APK with the artifact, kind counts, signing block, and every entry projected, decimal-string 64-bit values, payload budgets, and a determinism test.
+- `ree analyze` and `ree_analyze` coverage for ZIP, tar, gzip, APK, ASAR, and property lists: explicit and magic-based selection, container-checked archive formats, an APK-or-ZIP detection rule, new summary counts, and MCP surface `0.3`.
+- `ree inventory`, `ree search`, and `ree compare`: deterministic paginated entry views over a sealed record, case-insensitive name filtering, a name-keyed diff with an index fallback, text and JSON output, and exit code `2` for invalid usage.
 
 ## [0.0.2] - 2026-10-27
 

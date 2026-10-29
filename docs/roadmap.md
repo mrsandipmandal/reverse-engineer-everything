@@ -231,7 +231,7 @@ Out of scope for this phase:
 
 ## Phase 6: archives, application packages, and inventory
 
-Status: in progress. PR1 adds the bounded ZIP, tar, and gzip reader with
+Status: complete. PR1 adds the bounded ZIP, tar, and gzip reader with
 [ADR 0016](adr/0016-archive-reader.md); PR2 adds the `ree.payload.archive/1`
 evidence provider with bounded nested detection and
 [ADR 0017](adr/0017-archive-evidence-adapter.md); PR3 adds the bounded ASAR
@@ -240,7 +240,10 @@ reader and the `ree.payload.asar/1` evidence provider with
 and the `ree.payload.plist/1` evidence provider with
 [ADR 0019](adr/0019-plist-reader.md); PR5 adds the bounded APK reader and the
 `ree.payload.apk/1` evidence provider with
-[ADR 0020](adr/0020-apk-reader.md).
+[ADR 0020](adr/0020-apk-reader.md); PR6 wires every provider into `ree analyze`
+and `ree_analyze`, adds `ree inventory`, `ree search`, and `ree compare` with
+pagination, raises the MCP surface to `0.3`, and closes the phase with
+[ADR 0021](adr/0021-phase6-wiring.md).
 
 Scope:
 

@@ -15,7 +15,7 @@ const (
 	// ServerName is the machine-readable MCP server name.
 	ServerName = "ree"
 	// SurfaceVersion versions the REE-native MCP contract.
-	SurfaceVersion = "0.2"
+	SurfaceVersion = "0.3"
 	// VersionToolName is the build identity tool.
 	VersionToolName = "ree_version"
 	// DoctorToolName is the environment diagnostics tool.
@@ -44,7 +44,7 @@ func newServer(info version.Info, diagnose doctorFunc) *sdk.Server {
 		},
 		&sdk.ServerOptions{
 			Instructions: fmt.Sprintf(
-				"REE MCP surface %s. This server exposes build identity, local environment diagnostics, and read-only analysis of one local ELF, PE, or Mach-O artifact. ree_analyze returns a path-free summary and optionally the sealed evidence record; it never executes, modifies, or uploads an artifact.",
+				"REE MCP surface %s. This server exposes build identity, local environment diagnostics, and read-only analysis of one local executable, archive, application package, or property list. ree_analyze accepts ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, and plist artifacts and returns a path-free summary and optionally the sealed evidence record; it never executes, modifies, or uploads an artifact. Inventory, search, and compare views are available through the ree command line, not this surface.",
 				SurfaceVersion,
 			),
 		},

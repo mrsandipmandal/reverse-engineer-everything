@@ -50,8 +50,11 @@ const (
 // sentinel is preserved as well.
 var (
 	// ErrInvalid reports a structurally invalid APK: no ZIP end record, no
-	// root AndroidManifest.xml, or a signing block that contradicts itself.
+	// ZIP container, or a signing block that contradicts itself.
 	ErrInvalid = errors.New("apk: invalid artifact")
+	// ErrNotPackage reports a valid ZIP archive without a root
+	// AndroidManifest.xml, so the artifact is an archive and not a package.
+	ErrNotPackage = errors.New("apk: root AndroidManifest.xml is missing")
 	// ErrTruncated reports that a declared structure extends beyond the
 	// artifact end.
 	ErrTruncated = errors.New("apk: truncated artifact")
@@ -282,7 +285,7 @@ func ParseWithLimits(r io.ReaderAt, size int64, limits Limits) (*APK, error) {
 		}
 	}
 	if !manifest {
-		return nil, fmt.Errorf("%w: AndroidManifest.xml is missing", ErrInvalid)
+		return nil, ErrNotPackage
 	}
 
 	out := &APK{

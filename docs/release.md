@@ -92,7 +92,7 @@ The script checks that:
 - the `linux/amd64` binary reports the release version, tag commit, `linux`, and `amd64`;
 - `ree mcp` initializes at protocol version `2025-11-25`, reports server name `ree`, the release version, and names its surface version in the instructions;
 - the tool list matches that surface: `ree_version` and `ree_doctor` for `0.1`, plus `ree_analyze` for `0.2` and later;
-- for `0.2` and later, `ree_analyze` on the downloaded `linux/amd64` binary returns a summary whose `sha256` and `size` match the file on disk.
+- for `0.2` and later, `ree_analyze` on the downloaded `linux/amd64` binary returns a summary whose `sha256` and `size` match the file on disk; from `0.3` the tool also accepts ZIP, tar, gzip, APK, ASAR, and plist artifacts.
 
 Record the result in `docs/releases/<tag>.md` using the checklist:
 

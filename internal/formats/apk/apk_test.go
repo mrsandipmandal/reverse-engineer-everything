@@ -236,9 +236,9 @@ func TestParseErrors(t *testing.T) {
 		{"empty", nil, ErrTruncated},
 		{"garbage", []byte("not a zip archive"), ErrInvalid},
 		{"tar", tarLike, ErrInvalid},
-		{"no manifest", buildZIP(t, []string{"classes.dex"}, [][]byte{[]byte("dex")}), ErrInvalid},
-		{"manifest directory", buildZIP(t, []string{"AndroidManifest.xml/"}, [][]byte{nil}), ErrInvalid},
-		{"manifest below root", buildZIP(t, []string{"assets/AndroidManifest.xml"}, [][]byte{[]byte("x")}), ErrInvalid},
+		{"no manifest", buildZIP(t, []string{"classes.dex"}, [][]byte{[]byte("dex")}), ErrNotPackage},
+		{"manifest directory", buildZIP(t, []string{"AndroidManifest.xml/"}, [][]byte{nil}), ErrNotPackage},
+		{"manifest below root", buildZIP(t, []string{"assets/AndroidManifest.xml"}, [][]byte{[]byte("x")}), ErrNotPackage},
 		{"truncated", buildZIP(t, names, contents)[:20], ErrTruncated},
 	}
 	for _, test := range tests {

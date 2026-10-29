@@ -287,7 +287,7 @@ Threat: a client sends malformed arguments or a tool contaminates the stdio prot
 
 Mitigations:
 
-- surface `0.1` tools take no arguments, so artifact data cannot reach a handler; `ree_analyze` is the only argument-taking tool from surface `0.2`;
+- surface `0.1` tools take no arguments, so artifact data cannot reach a handler; `ree_analyze` is the only argument-taking tool from surface `0.2` and later;
 - the SDK validates tool inputs and outputs against generated JSON Schemas, including a required artifact path;
 - stdout is reserved for MCP protocol messages;
 - the SDK logger defaults to discard, and CLI errors go to stderr;

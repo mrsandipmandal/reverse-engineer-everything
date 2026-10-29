@@ -1,6 +1,8 @@
 package mcp
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
@@ -63,6 +65,41 @@ func TestAnalyzeToolELF(t *testing.T) {
 	}
 	if report.RecordOmitted != "" {
 		t.Fatalf("record_omitted = %q, want empty", report.RecordOmitted)
+	}
+}
+
+func TestAnalyzeToolZIP(t *testing.T) {
+	t.Parallel()
+
+	var buffer bytes.Buffer
+	writer := zip.NewWriter(&buffer)
+	member, err := writer.CreateHeader(&zip.FileHeader{Name: "hello.txt", Method: zip.Store})
+	if err != nil {
+		t.Fatalf("create member: %v", err)
+	}
+	if _, err := member.Write([]byte("hi")); err != nil {
+		t.Fatalf("write member: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close archive: %v", err)
+	}
+	path := writeAnalyzeFixture(t, "bundle.zip", buffer.Bytes())
+	session := connect(t, NewServer(version.Get()))
+
+	result := callAnalyze(t, session, map[string]any{"path": path})
+	summary := decodeStructured[analyzeReport](t, result).Summary
+
+	if summary.Format != analyze.FormatZIP {
+		t.Fatalf("format = %q, want %q", summary.Format, analyze.FormatZIP)
+	}
+	if summary.ProviderID != "builtin.archive" || summary.Profile != "default" {
+		t.Fatalf("provider = %q/%q, want builtin.archive/default", summary.ProviderID, summary.Profile)
+	}
+	if summary.Coverage != string(evidence.CoverageComplete) {
+		t.Fatalf("coverage = %q, want complete", summary.Coverage)
+	}
+	if summary.Counts.Entries != 1 {
+		t.Fatalf("entry count = %d, want 1", summary.Counts.Entries)
 	}
 }
 
