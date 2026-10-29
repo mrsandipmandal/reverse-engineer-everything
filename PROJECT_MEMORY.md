@@ -1,15 +1,16 @@
 # Project memory
 
-Last updated: 2026-10-28 · Phase 5 closeout, code verified at `67a0b9f` · latest release `v0.0.2`
+Last updated: 2026-10-29 · Phase 6 closeout, code verified at `e3c16cf` · latest release `v0.0.2`
 
 This file is a short, verified snapshot for continuity. The roadmap, changelog, ADRs, and release records remain authoritative for their own content.
 
 ## Current status
 
-- Phase 0a, 0b, 0c, Phase 1 (evidence core), Phase 2 (ELF), Phase 3 (PE), Phase 4 (analysis surface), and Phase 5 (Mach-O) are complete.
+- Phase 0a, 0b, 0c, Phase 1 (evidence core), Phase 2 (ELF), Phase 3 (PE), Phase 4 (analysis surface), Phase 5 (Mach-O), and Phase 6 (archives, application packages, and inventory) are complete.
 - Phase 2 adds `internal/formats/elf` and `internal/providers/elf`; Phase 3 adds `internal/formats/pe` and `internal/providers/pe`; Phase 4 adds `internal/usecase/analyze`, the `ree analyze` command, and the `ree_analyze` MCP tool, raising the MCP surface to `0.2`; Phase 5 adds `internal/formats/macho` and `internal/providers/macho` and wires `builtin.macho` into both analysis surfaces.
-- `v0.0.1` and `v0.0.2` are published and verified; no Phase 2, Phase 3, Phase 4, or Phase 5 release was cut.
-- `main` is clean and protected; CI, CodeQL, and Actionlint are green on `67a0b9f`.
+- Phase 6 adds `internal/formats/archive`, `internal/formats/asar`, `internal/formats/plist`, and `internal/formats/apk` with the `ree.payload.archive/1`, `ree.payload.asar/1`, `ree.payload.plist/1`, and `ree.payload.apk/1` providers, then wires all four into `ree analyze` and `ree_analyze`, adds `internal/usecase/inventory` with the `ree inventory`, `ree search`, and `ree compare` commands, and raises the MCP surface to `0.3`.
+- `v0.0.1` and `v0.0.2` are published and verified; no Phase 2, Phase 3, Phase 4, Phase 5, or Phase 6 release was cut.
+- `main` is clean and protected; CI, CodeQL, and Actionlint are green on `e3c16cf`.
 
 ## Completed milestones
 
@@ -23,6 +24,7 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 | 3 | Bounded PE32/PE32+ reader and `ree.payload.pe/1` evidence provider | PRs #22–#25; `fe774e0`, `bf4646c`, `e6176e5`, `c070b94`; ADR 0008–0011; `docs/payload-pe.md` |
 | 4 | Analysis surface: `internal/usecase/analyze`, `ree analyze`, `ree_analyze`, MCP surface `0.2` | PRs #27–#29; `8b7901d`, `f86823b`, `379f441`; ADR 0012; `docs/analyze.md` |
 | 5 | Bounded Mach-O and universal binary reader, `ree.payload.macho/1` provider, Mach-O in both analysis surfaces | PRs #31–#34; `6a163de`, `ba51ee3`, `2b1885e`, `67a0b9f`; ADR 0013–0015; `docs/payload-macho.md` |
+| 6 | Bounded ZIP/tar/gzip, ASAR, plist, and APK readers with the `ree.payload.archive/1`, `ree.payload.asar/1`, `ree.payload.plist/1`, and `ree.payload.apk/1` providers; all four in both analysis surfaces; `ree inventory`, `ree search`, `ree compare`, MCP surface `0.3` | PRs #36–#41; `ab6de4f`, `6081b7e`, `0fe58c8`, `1d1b1af`, `a6d58b5`, `e3c16cf`; ADR 0016–0021; `docs/payload-archive.md`, `docs/payload-asar.md`, `docs/payload-plist.md`, `docs/payload-apk.md`, `docs/inventory.md` |
 
 ## Architecture decisions
 
@@ -41,6 +43,12 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 - ADR 0013: bounded Mach-O and universal binary foundation over `io.ReaderAt` plus explicit size, both thin byte orders, `FAT_MAGIC` and `FAT_MAGIC_64` slice tables, a validated load command chain, strict fixed-width names, per-slice failures that keep good slices, and no retained command table.
 - ADR 0014: on-demand Mach-O metadata for dylibs, `LC_UUID`, `LC_BUILD_VERSION` and legacy version-min commands, `LC_MAIN`, `LC_SYMTAB` symbols, and `LC_CODE_SIGNATURE` superblob and blob headers, with `ErrNotFound` for absence, aggregated limitations for enumerable defects, and no signature validation.
 - ADR 0015: `ree.payload.macho/1` with one record per artifact and every universal slice listed, per-slice status, equal per-slice payload shares, null-for-absent members, artifact-wide section content hashing, and unknowns for out-of-scope structures.
+- ADR 0016: bounded ZIP, tar, and gzip reader over `io.ReaderAt` plus explicit size, with end-record and ZIP64 validation, central-versus-local name matching, CRC-32 only on a full read, unsafe-path reporting without repair, and on-demand in-memory content.
+- ADR 0017: `ree.payload.archive/1` with every entry projected, prefix-based nested container detection bounded by depth, member count, and decoded bytes, and a payload budget that charges the envelope first.
+- ADR 0018: bounded Electron ASAR reader with Chromium Pickle header validation, a depth- and entry-bounded JSON directory walk in sorted path order, declared-range checks, and `ree.payload.asar/1`.
+- ADR 0019: bounded plist reader with a flat typed object table, binary trailer and reference validation, depth as a reachability walk, an XML token stream so limits apply before expansion, and `ree.payload.plist/1`.
+- ADR 0020: bounded APK reader that reuses the ZIP reader, requires a root `AndroidManifest.xml`, classifies Android members, hashes only manifest, DEX, and resources under per-entry and aggregate limits, validates the signing block without any signature claim, and emits `ree.payload.apk/1`.
+- ADR 0021: Phase 6 wiring with six new analyze formats and a container check, APK-or-ZIP detection, `omitempty` counts, a CLI-only inventory projection with 50/1000 paging, name-keyed compare, and MCP surface `0.3` without an inventory tool.
 
 ## Verification
 
@@ -48,10 +56,15 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 - PR #25 checks (`40638461187`, CodeQL `40638461228`): the same matrix plus the PE provider tests, all 21 checks pass.
 - PR #27 checks (`40646671588`, CodeQL `40646671556`), PR #28 checks (`40647967640`, CodeQL `40647967635`), and PR #29 checks (`40648892636`, CodeQL `40648892486`): all 21 checks pass on each pull request.
 - PR #31 checks (`40655288448`, CodeQL `40655288471`), PR #32 checks (`40656558688`, CodeQL `40656558698`), PR #33 checks (`40658115378`, CodeQL `40658115643`), and PR #34 checks (`40658702345`, CodeQL `40658702309`): all 21 checks pass on each pull request, and Actionlint passes on each merged commit (`40655288543`, `40656558667`, `40658115311`, `40658702504`).
+- Phase 6 PRs #36–#41: all 21 checks pass on each pull request. CodeQL reported one high-severity advisory on PR #38 (`internal/formats/asar/header.go`, an unchecked `uint64` to `int64` conversion); it was fixed in `35f3e78` with an explicit `math.MaxInt64` bound before the merge, and the remaining checks passed.
+- Merged Phase 6 commits are green: `0fe58c8` (CI `40668270342`, CodeQL `40668270345`, Actionlint `40668270350`), `1d1b1af` (CI `40670712967`, CodeQL `40670712906`, Actionlint `40670712938`), `a6d58b5` (CI `40672346273`, CodeQL `40672346302`, Actionlint `40672346445`), and `e3c16cf` (CI `40823003835`, CodeQL `40823003906`, Actionlint `40823003867`).
 - Local `gofmt`, `go vet`, `go test ./...`, `go test -race ./...`, `golangci-lint`, `govulncheck`, and `actionlint`: pass at the PR #25 and Phase 4 heads; the merged trees at `c070b94`, `8b7901d`, `f86823b`, and `379f441` are identical to the verified heads.
 - Local `GOARCH=386` tests for `internal/formats/pe`, `internal/providers/pe`, `internal/formats/macho`, `internal/providers/macho`, `internal/usecase/analyze`, `internal/cli`, and `internal/mcp`: pass.
 - Local fuzz runs: `FuzzObserve` (ELF) 30s (~11k execs), `FuzzObserve` (PE) 30s (19,259 execs), `FuzzParse` 30s (~1.82M execs), `FuzzMetadata` (Mach-O) 25s (2,160,406 execs), and `FuzzObserve` (Mach-O) 12s (27,450 execs); all pass. `FuzzMetadata` found one real defect, a 16-byte dylib command that reached the name decoder; it is fixed and the input is kept as a regression seed.
-- Package coverage: `internal/providers/elf` 97.8%, `internal/formats/elf` 96.1%, `internal/providers/pe` 93.5%, `internal/formats/macho` 92.6%, `internal/providers/macho` 92.9%, `internal/usecase/analyze` 95.4%, `internal/cli` 88.4%, `internal/mcp` 97.4%.
+- Package coverage: `internal/providers/elf` 97.8%, `internal/formats/elf` 96.1%, `internal/providers/pe` 93.5%, `internal/formats/macho` 92.6%, `internal/providers/macho` 92.9%, `internal/usecase/analyze` 95.4%, `internal/cli` 88.4%, `internal/mcp` 97.4%; after Phase 6: `internal/formats/archive` 90.1%, `internal/providers/archive` 95.9%, `internal/formats/asar` 96.1%, `internal/providers/asar` 96.7%, `internal/formats/plist` 90.8%, `internal/providers/plist` 95.6%, `internal/formats/apk` 95.6%, `internal/providers/apk` 96.9%, `internal/usecase/inventory` 93.0%, `internal/usecase/analyze` 91.7%, `internal/cli` 85.3%, `internal/mcp` 97.4%.
+- Phase 6 local gates at the PR #41 head (`3b7d615`): `gofmt`, `go vet`, `go test`, `go test -race`, `golangci-lint` (0 issues), `govulncheck` (no vulnerabilities), `actionlint`, and the 386 build all pass.
+- Phase 6 fuzz runs, all 10 seconds each and all passing: archive `FuzzParse` and `FuzzObserve` (PR #36/#37), ASAR `FuzzParse` 1,115,077 execs and `FuzzObserve` 924,780 execs, plist `FuzzParse` 1,285,524 execs and `FuzzObserve` 1,079,511 execs, APK `FuzzParse` 1,200,236 execs and `FuzzObserve` 487,594 execs.
+- CLI smoke for the inventory views: `ree inventory smoke.zip` reports `zip`, `ree.payload.archive/1`, 3 entries, and no limitations; `ree compare smoke.zip smoke2.zip` reports one added, one changed, and no removed entry.
 - Smoke run against an 11.8 MB system binary: 2.5 MB record, partial coverage with one payload-budget limitation and two unknowns, no panic.
 - CLI smoke on `/bin/ls`: `ree analyze` reports `elf`, `builtin.elf/default`, 11,807,104 bytes, 34 sections, 15 segments, and 306 symbols; `--json` is valid and `--out` writes a 2,519,443-byte record with mode 0644 that refuses to overwrite without `--force`.
 - MCP probe rehearsal with the new `scripts/verify-release.sh` logic: `MCP ok: 0.2 2025-11-25 ree_analyze, ree_doctor, ree_version`; the `ree_analyze` summary for the built binary matches its `sha256` and size.
@@ -59,7 +72,14 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 
 ## Known issues and limitations
 
-- ELF, PE, and Mach-O are the formats reachable from the CLI and MCP surfaces. Archives, application packages, JavaScript, external engines, and runtime analysis remain unimplemented.
+- ELF, PE, Mach-O, ZIP, tar, gzip, APK, ASAR, and plist are the formats reachable from the CLI and MCP surfaces. JavaScript, external engines, runtime analysis, decompilation, and disassembly remain unimplemented.
+- Archive and package content is never extracted. A member or entry is read in memory on demand and is never written, linked, mapped, or executed.
+- Binary `AndroidManifest.xml`, `resources.arsc`, and DEX are inventoried as declared bytes with a digest; they are not decoded.
+- An APK signature block is reported as presence, size, pair identifiers, and pair digests only. No signature, certificate chain, or v4 signature is validated, and presence is not a trust signal.
+- Nested container detection covers archive members, not ASAR entries; an ASAR entry is projected as declared metadata.
+- `ree inventory`, `ree search`, and `ree compare` are CLI-only and read a sealed record; ELF, PE, and Mach-O have no inventory view and point at `ree analyze`.
+- The plist reader supports the binary and XML representations and inventories unreachable objects without claiming they are part of the document graph.
+- Archive, ASAR, APK, and plist readers report a limitation rather than silently accepting a partial inventory; `coverage: partial` describes the record, not the artifact's safety.
 - The ELF provider does not decode symbol versioning, `SHT_DYNAMIC`, needed libraries, compressed sections, or implicit `SHT_REL` addends; these are recorded as unknowns.
 - ELF evidence tables may be prefixes of the artifact's tables when the payload budget is exhausted; `coverage: partial` and an omission limitation describe the gap.
 - `uint64` ELF fields, relocation addends, PE image bases, and PE file offsets are decimal strings in the payload because JSON numbers lose precision above 2^53.
@@ -78,13 +98,13 @@ This file is a short, verified snapshot for continuity. The roadmap, changelog, 
 - The MCP tool reads any regular file the server user can read. It bounds size and response size but is not a sandbox, and its error messages disclose whether a path exists and what it is.
 - `ree_analyze` returns the sealed record only up to 1 MiB; larger records carry `record_omitted` and must be exported with `ree analyze --out`.
 - `ree analyze --out` writes canonical record bytes without a trailing newline because `evidence.Decode` accepts canonical input only.
-- The MCP surface is `0.2`; older releases verify as `0.1` with two tools, so a consumer must read the surface version before assuming `ree_analyze` exists.
+- The MCP surface is `0.3`; older releases verify as `0.1` with two tools and as `0.2` with three, so a consumer must read the surface version before assuming a tool or format exists. Inventory, search, and compare are not exposed over MCP.
 
 ## Pending work and next action
 
-1. Propose Phase 6 (archives, application packages, and inventory) with scope, acceptance criteria, and a verification plan; wait for approval before implementation.
-2. Keep the analysis surfaces limited to ELF, PE, and Mach-O until another provider merges.
-3. Cut a release only with explicit approval and after recording verification evidence.
+1. Decide whether Phase 6 gets a release tag (`v0.0.3`); a release needs explicit approval, a verified tree, and `docs/releases/<tag>.md` with recorded evidence.
+2. Keep the analysis surfaces limited to the providers above until another provider merges.
+3. Do not start a new phase without approved scope, acceptance criteria, and a verification plan.
 
 ## Update rules
 
