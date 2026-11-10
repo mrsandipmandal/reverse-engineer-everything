@@ -104,3 +104,9 @@ Report vulnerabilities privately through GitHub Security Advisories. See [SECURI
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Support
+
+If you find this project useful, consider buying me a coffee ☕
+
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=sandiptaibt&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/sandiptaibt)
